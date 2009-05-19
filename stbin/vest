@@ -13,7 +13,7 @@ my $plugins;
 my $apt_server = $ENV{ST_APT} || 'https://apt.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
-my ($test_data, $test_data_only);
+my ($test_data, $test_data_only, $staging_db, $staging_db_only);
 GetOptions(
     'v|ve-name=s' => \$ve_name,
     'r|repo=s'    => \$repo,
@@ -23,12 +23,12 @@ GetOptions(
     'a|arch=s' => \$arch,
     'w|wipe' => \$wipe_it,
     'test-data-only' => \$test_data_only,
+    'staging-db' => \$staging_db,
+    'staging-db-only' => \$staging_db_only,
 ) or usage ();
 
-if ($test_data_only) {
-    install_test_data();
-    exit 0;
-}
+if ($test_data_only)  { install_test_data();  exit 0 }
+if ($staging_db_only) { install_staging_db(); exit 0 }
 
 usage('repo or upgrade-to is mandatory!') unless $repo or $upgrade_to;
 usage('ve-name is mandatory!') unless $ve_name;
@@ -83,6 +83,7 @@ else {
 install_test_data() if $test_data;
 eval { run_tests() }; warn $@ if $@;
 install_plugins() if $plugins;
+install_staging_db() if $staging_db;
 
 exit;
 
@@ -120,6 +121,7 @@ EOT
 sub exec_on_ve {
     my $cmd = join '; ', @_;
     $cmd =~ s/([^\\])"/$1\\"/g;
+    die "Either do not use single quotes or fix this code" if $cmd =~ m/'/;
     shell_run(qq{ssh $ve_host "sudo vzctl exec $ve_name '$cmd'"});
 }
 
@@ -137,5 +139,22 @@ sub install_test_data {
         "st-admin add-workspace-admin $email --workspace admin",
         "st-admin give-accounts-admin $email",
         "st-admin give-system-admin $email",
+    );
+}
+
+sub install_staging_db {
+    my $local_tmp = "/tmp/socialtext-$$.sql";
+    shell_run("scp www2.socialtext.net:/var/www/socialtext/storage/db-backups/socialtext.sql $local_tmp");
+    shell_run("scp $local_tmp ${ve_name}:/tmp/socialtext.sql");
+    unlink $local_tmp;
+
+    exec_on_ve(
+        q{/etc/init.d/apache-perl stop},
+        q{/etc/init.d/ceqlotron stop},
+        q{/etc/init.d/postgresql-8.1 restart},
+        q{st-db dropdb -s socialtext},
+        q{su - postgres -c "psql -q -f /tmp/socialtext.sql"},
+        q{/etc/init.d/ceqlotron start},
+        q{/etc/init.d/apache-perl start},
     );
 }
