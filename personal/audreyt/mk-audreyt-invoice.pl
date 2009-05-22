@@ -2,6 +2,7 @@
 use utf8;
 use encoding 'utf8';
 use strict;
+use warnings;
 use DateTime;
 use List::Util 'sum';
 use Number::Format qw(:subs);
@@ -15,7 +16,7 @@ $username = $ENV{ST_USER} || $username;
 my $server      = $ENV{ST_SERVER} || 'https://www2.socialtext.net/';
 my $password    = $ENV{ST_PASSWORD} || do {
     require Term::ReadPassword;
-    read_password("Password for $username at $server: ")
+    Term::ReadPassword::read_password("Password for $username at $server: ")
 };
 my $hourly_rate = $ENV{ST_HOURLY_RATE} || 90;
 
@@ -84,7 +85,7 @@ for my $wk (@weeks) {
     print "*Total* |\n";
     print "| _Hours_ | ";
 
-    my $total = sum(@hours);
+    my $total = sum(@hours) || 0;
     $grand_total += $total;
 
     for (@hours) {
