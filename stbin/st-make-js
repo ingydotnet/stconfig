@@ -1,5 +1,11 @@
 #!/bin/bash
 
+echo "########################################################################################################";
+echo;
+echo "This script is DEPRECATED!  New branches (after iteration-2009-05-22) should use nlw/dev-bin/st-make-js!";
+echo;
+echo "########################################################################################################";
+
 MAKEFILES="$ST_CURRENT/nlw/share/skin/Makefile $ST_CURRENT/plugins/socialcalc/share/javascript/Makefile $ST_CURRENT/plugins/people/Makefile $ST_CURRENT/plugins/widgets/Makefile $ST_CURRENT/plugins/signals/Makefile"
 
 # REMOVED MAKING JS-TEST SINCE IT SEEMS TO BREAK SUBSEQUENT rb COMMANDS:
