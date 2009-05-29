@@ -4,3 +4,4 @@ TZ='America/Los_Angeles'; export TZ
 # stuff to ~/stconfig-{before,after}, we can slurp ~/.bashrc_st into this file
 [ -r ~/.bashrc_st ] && source ~/.bashrc_st
 [ -r ~/.stconfig-after ] && source ~/.stconfig-after
+eval $(perl -I$HOME/perl5/lib/perl5 -Mlocal::lib)
