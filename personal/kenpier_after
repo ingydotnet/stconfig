@@ -1,10 +1,16 @@
 if [ -e $ST_SRC_BASE/stconfig/personal/qa_after ]; then
     source $ST_SRC_BASE/stconfig/personal/qa_after
     alias selme='setsel 5435 firefox osx'
+    alias statme='netstat -lan | grep 5435'
+    alias envme='env | grep -i selenium | grep -iv haxor'
     alias backups='cd /var/local/samba/'
+    alias tapme='tapout '
 elif [ -e /usr/share/stconfig/personal/qa_after ]; then
     source /usr/share/stconfig/personal/qa_after
     alias selme='source /usr/share/stconfig/stbin/qa/appliance/setup-selenium  5435 firefox osx'
+    alias testme='cd /usr/share/stconfig/stbin/qa/appliance/; st-appliance-wikitests;'
+    alias stestme='selme; testme'
+    alias tapme='tapout '
 else
     echo COULD NOT FIND file qa_after
 fi
