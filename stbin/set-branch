@@ -82,6 +82,17 @@ sub update_submodules {
     shell_run("git submodule init");
     shell_run("git submodule update");
 
+    # We should only "git checkout master" if we're on master; otherwise the remote
+    # has nothing new for us since we're on an old master branch.
+    my $ref = do {
+        local $ENV{GIT_DIR} = "$path/.git";
+        `git symbolic-ref -q HEAD 2>/dev/null`;
+    };
+    chomp $ref;
+    return unless $ref;
+    (my $branch = $ref) =~ s#refs/heads/##;
+    return unless $branch eq 'master';
+
     for (`git submodule status`) {
          # Each line is a submodule, for example:
          #  767c95e4023c56387bb42680690a54604be19f76 nlw/share/skin/common/submodule/js-class (heads/master)
