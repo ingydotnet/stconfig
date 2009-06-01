@@ -56,9 +56,6 @@ if [ $FRESHDEV ]; then
 
 fi
 
-echo Removing all ceqlotron tasks to stop unnecessary indexing
-$NLW_BIN/ceq-rm /.+/
-
 cd $ST_CURRENT
 echo plan-page is $1
 echo plan-workspace is $PLAN_WORKSPACE
