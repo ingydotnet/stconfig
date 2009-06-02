@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use File::chdir;
+use FindBin;
+
+sub run {
+    local $,=' ';
+    warn "+ @_\n";
+    system(@_) and exit 1;
+}
+
+my $git_dir = `git rev-parse --git-dir 2>/dev/null`;
+chomp $git_dir;
+exit unless $git_dir;
+$CWD = "$git_dir/..";
+
+my @submod = `git submodule status`;
+foreach my $mod (@submod) {
+    next unless $mod =~ /^(.)([0-9a-f]+) (.+?)( \(.+?\))?$/;
+    my ($state,$sha,$path) = ($1,$2,$3);
+    if ($state eq ' ') {
+        warn "Submodule $path is up to date\n";
+        next;
+    }
+    elsif ($state eq '-') {
+        warn "Initializing submodule $path...\n";
+        run(qw{git submodule update --init},$path);
+    }
+    else {
+        local $CWD = $path;
+        my $submod_has_lm =
+            `git ls-files --modified --deleted --others --exclude-standard 2>/dev/null`;
+        my $submod_has_unpushed = `$FindBin::Bin/gunpushed 2>/dev/null`;
+
+        if ($submod_has_lm) {
+            warn "Submodule $path has locally-modified files but needs an update\n";
+            warn "Either commit or stash those changes then run 'refresh-submodules'\n";
+        }
+        elsif ($submod_has_unpushed) {
+            warn "Submodule $path has un-pushed changes but needs an update\n"
+        }
+        else {
+            warn "Updating submodule $path...\n";
+            run(qw{git submodule update}, $path);
+        }
+    }
+
+}
