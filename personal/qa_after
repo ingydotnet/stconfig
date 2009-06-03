@@ -37,9 +37,10 @@ if [ -e /etc/socialtext/socialtext.conf ]; then
 else
 
     # aliases for a dev env
+    alias gunpulled='pushd $ST_CURRENT; st-git-all @fetch;gunpulledall; popd'
     alias sta='$ST_CURRENT/nlw/bin/st-admin '
     alias makeme='$ST_CURRENT/nlw/dev-bin/st-make-js; restartme;'
-    alias freshdev='~/personal/qa/tests-to-tarballs.bash; $ST_CURRENT/nlw/dev-bin/fresh-dev-env-from-scratch; $ST_CURRENT/nlw/bin/ceq-rm /.+/; $ST_CURRENT/nlw/bin/st-config set benchmark_mode 1'
+    alias freshdev='~/personal/qa/tests-to-tarballs.bash; $ST_CURRENT/nlw/dev-bin/fresh-dev-env-from-scratch; $ST_CURRENT/nlw/bin/ceq-rm Index; $ST_CURRENT/nlw/bin/st-config set benchmark_mode 1'
     alias tests-from-tarballs='~/personal/qa/tests-from-tarballs.bash'
     alias tests-to-tarballs='~/personal/qa/tests-to-tarballs.bash'
     alias stopme='$ST_CURRENT/nlw/dev-bin/nlwctl stop'
