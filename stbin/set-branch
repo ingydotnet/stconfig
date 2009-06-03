@@ -70,15 +70,33 @@ foreach my $repo (@repos) {
     checkout_branch($repo, $branch);
 }
 
-chdir "$ENV{ST_SRC_BASE}/current";
-shell_run("git submodule init");
-shell_run("git submodule update");
-
-chdir "$ENV{ST_SRC_BASE}/current/plugins";
-shell_run("git submodule init");
-shell_run("git submodule update");
+update_submodules("$ENV{ST_SRC_BASE}/current");
+update_submodules("$ENV{ST_SRC_BASE}/current/plugins");
 
 exit;
+
+sub update_submodules {
+    my $path = shift;
+
+    chdir $path;
+    shell_run("git submodule init");
+    shell_run("git submodule update");
+
+    for (`git submodule status`) {
+         # Each line is a submodule, for example:
+         #  767c95e4023c56387bb42680690a54604be19f76 nlw/share/skin/common/submodule/js-class (heads/master)
+         m{^
+            \s*          # beginning of string
+            \w+          # SHA sum
+            \s+          # space
+           (\S+)         # submodule path - captured as $1
+         }x or die "Malformed git submodule status line: $_)";
+         chdir $1;
+         shell_run("git checkout -q master"); # Submodules should always be on the "master" branch
+         chdir $path;
+    }
+}
+
 color_print('blue', 
             "Re-applying previously stashed modifications for $branch\n");
 foreach my $repo (@repos) {
