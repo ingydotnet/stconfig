@@ -45,11 +45,14 @@ syntax match stwikiItalic         /''\([^'].\{-}\)''/
 " `code`
 syntax match stwikiCode           /`\([^`].\{-}\)`/
 
+" %%wikitestvar%%
+syntax match stwikiTestVar           /%%\([^%].\{-}\)%%/
+
 "   text: -deleted text- 
 syntax match stwikiDelText        /\(^\|\s\+\)\zs-\([^ <a ]\|[^ <img ]\|[^ -].*\)-/
 
 " Aggregate all the regular text highlighting into stwikiText
-syntax cluster stwikiText contains=stwikiItalic,stwikiBold,stwikiCode,stwikiDelText,stwikiLink,stwikiWord
+syntax cluster stwikiText contains=stwikiItalic,stwikiBold,stwikiCode,stwikiTestVar,stwikiDelText,stwikiLink,stwikiWord
 
 " single-line WikiPropertys
 syntax match stwikiSingleLineProperty /^:\?[A-Z_][_a-zA-Z0-9]\+:/
@@ -96,6 +99,7 @@ hi def stwikiBold                       term=bold cterm=bold gui=bold
 hi def stwikiItalic                     term=italic cterm=italic gui=italic
 
 hi def link stwikiCode                  Statement
+hi def link stwikiTestVar               Statement
 hi def link stwikiWord                  Underlined
 
 hi def link stwikiEscape                Todo
