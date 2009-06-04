@@ -70,8 +70,8 @@ foreach my $repo (@repos) {
     checkout_branch($repo, $branch);
 }
 
-update_submodules("$ENV{ST_SRC_BASE}/current");
-update_submodules("$ENV{ST_SRC_BASE}/current/plugins");
+shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
+shell_run("cd $ENV{ST_SRC_BASE}/current/plugins && refresh-submodules");
 
 exit;
 

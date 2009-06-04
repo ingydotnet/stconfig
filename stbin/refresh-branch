@@ -11,47 +11,11 @@ GetOptions( \%opts,
     'no-restart'
 ) or usage();
 
-my $cmd = ($opts{quiet} ? '@' : '') . 'pull --rebase';
-shell_run("st-git-all $cmd");
-update_submodules("$ENV{ST_SRC_BASE}/current");
-update_submodules("$ENV{ST_SRC_BASE}/current/plugins");
+shell_run('st-git-all '. ($opts{quiet} ? '@' : '') . 'pull --rebase');
+shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
+shell_run("cd $ENV{ST_SRC_BASE}/current/plugins && refresh-submodules");
 
 exit;
-
-sub update_submodules {
-    my $path = shift;
-
-    chdir $path;
-
-    shell_run("git submodule init");
-    shell_run("git submodule update");
-
-    # We should only "pull --rebase" if we're on master; otherwise the remote
-    # has nothing new for us since we're on an old master branch.
-    my $ref = do {
-        local $ENV{GIT_DIR} = "$path/.git";
-        `git symbolic-ref -q HEAD 2>/dev/null`;
-    };
-    chomp $ref;
-    return unless $ref;
-    (my $branch = $ref) =~ s#refs/heads/##;
-    return unless $branch eq 'master';
-
-    for (`git submodule status`) {
-         # Each line is a submodule, for example:
-         #  767c95e4023c56387bb42680690a54604be19f76 nlw/share/skin/common/submodule/js-class (heads/master)
-         m{^
-            \s*          # beginning of string
-            \w+          # SHA sum
-            \s+          # space
-           (\S+)         # submodule path - captured as $1
-         }x or die "Malformed git submodule status line: $_)";
-         chdir $1;
-         shell_run("git checkout -q $branch"); # Pull rebase in the submodule, too
-         shell_run("git $cmd"); # Pull rebase in the submodule, too
-         chdir $path;
-    }
-}
 
 sub color_print {
     my $color = shift;
