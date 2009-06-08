@@ -13,7 +13,6 @@ GetOptions( \%opts,
 
 shell_run('st-git-all '. ($opts{quiet} ? '@' : '') . 'pull --rebase');
 shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
-shell_run("cd $ENV{ST_SRC_BASE}/current/plugins && refresh-submodules");
 
 exit;
 
