@@ -18,4 +18,4 @@ my $parsed = Load($yaml);
 my $passed = $parsed->{overall_results}{passed};
 my $failed = $parsed->{overall_results}{failed};
 
-PostNotification("Testrunner", 'test', "Test Results for $branch", "$passed Passed, $failed Failed");
+PostNotification("Testrunner", 'test', "Tests on $branch", "$passed Passed, $failed Failed");
