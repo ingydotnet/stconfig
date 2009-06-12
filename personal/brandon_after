@@ -1,5 +1,7 @@
 # env variables
 export EMAIL='Brandon Noard <brandon.noard@socialtext.com>'
+export PERL5LIB="$ST_SRC_BASE/socialtext/nlw/lib"
+
 
 # This will let us run wikitests.
 QA_AFTER=$ST_SRC_BASE/stconfig/personal/qa_after
