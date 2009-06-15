@@ -15,7 +15,7 @@ RegisterNotifications("Testrunner", \@notifications, \@notifications);
 my $yaml = get("http://testrunner.socialtext.net/stci/$branch/in-progress/publishing-vars.yaml");
 exit unless $yaml;
 my $parsed = Load($yaml);
-exit unless $parsed;
+exit unless $parsed and $parsed->{overall_results}{total};
 
 my $passed = $parsed->{overall_results}{passed};
 my $failed = $parsed->{overall_results}{failed};
@@ -30,7 +30,7 @@ my $failed = $parsed->{overall_results}{failed};
 
 my $prio = -2;
 $prio = 1 if $failed;
-$prio = 2 if ($failed/$passed > 0.02 && $passed > 4000);
+$prio = 2 if $passed and ($failed/$passed > 0.02 && $passed > 4000);
 
 my $sticky = 0;
 
