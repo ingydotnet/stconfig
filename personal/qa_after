@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# functions and aliases for dev env and appliance
+
+    alias grnok="grep  -C 6 'not ok' testcases.out"
+    alias grnokk="grep 'not ok' testcases.out"
+    alias grtc="grep 'Loading test plan\|COMPLETED' testcases.out"
+    alias ttc='tail -f testcases.out'
+
+    xwtt() {
+        xwt $1 >& $1.out &
+        ln -sf $1.out testcases.out
+    }
+
 if [ -e /etc/socialtext/socialtext.conf ]; then
 
    # aliases for an appliance
@@ -7,10 +19,6 @@ if [ -e /etc/socialtext/socialtext.conf ]; then
     alias swa='sudo -u www-data st-admin '
     alias cdwt='cd /usr/share/nlw/workspaces/wikitests'
     alias cdappwt='cd /usr/share/stconfig/stbin/qa/appliance'
-    alias grnok="grep  -C 6 'not ok' testcases.out"
-    alias grnokk="grep 'not ok' testcases.out"
-    alias grtc="grep 'Loading test plan\|COMPLETED' testcases.out"
-    alias ttc='tail -f testcases.out'
     alias findwikis='ls /var/www/socialtext/data/'
     alias restartme='sudo /etc/init.d/apache2 stop; sudo /etc/init.d/apache-perl stop; sleep 5; sudo /etc/init.d/apache-perl start; sudo /etc/init.d/apache2  start;'
     alias ceqread='/usr/bin/ceq-read'
@@ -54,6 +62,7 @@ else
 
     alias cdroot='cd ~/.nlw/root'
     alias cddata='cd ~/.nlw/root/data'
+    alias cdetc='cd ~/.nlw/etc'
     alias cdconf='cd ~/.nlw/etc/socialtext'
     alias cdlog='cd ~/.nlw/log'
     alias cdfonts='cd $ST_CURRENT/nlw/share/fonts'
@@ -65,6 +74,7 @@ else
     alias cdwt='cd $ST_CURRENT/nlw/share/workspaces/wikitests'
     alias cdst='cd $ST_SRC_BASE'
     alias cdshare='cd $ST_CURRENT/nlw/share'
+    alias cdhelp='cd $ST_CURRENT/nlw/share/l10n/help'
     alias cdndb='cd $ST_CURRENT/nlw/dev-bin'
     alias cdnb='cd $ST_CURRENT/nlw/bin'
     
@@ -77,12 +87,6 @@ else
 
     SETSEL=$ST_SRC_BASE/stconfig/personal/qa/setup-selenium
     alias setsel="source $SETSEL"
-
-    # aliases to evaluate wikitests
-    alias grnok="grep  -C 6 'not ok' testcases.out"
-    alias grnokk="grep 'not ok' testcases.out"
-    alias grtc="grep 'Loading test plan\|COMPLETED' testcases.out"
-    alias ttc='tail -f testcases.out'
 
     # aliases to find out what's running
     alias psken='pstree -aAhlnp kenpier'
