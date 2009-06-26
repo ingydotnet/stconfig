@@ -7,11 +7,6 @@
     alias grtc="grep 'Loading test plan\|COMPLETED' testcases.out"
     alias ttc='tail -f testcases.out'
 
-    xwtt() {
-        xwt $1 >& $1.out &
-        ln -sf $1.out testcases.out
-    }
-
 if [ -e /etc/socialtext/socialtext.conf ]; then
 
    # aliases for an appliance
@@ -144,3 +139,10 @@ else
     export PROMPT_COMMAND=_git_prompt_color
 
 fi
+
+
+    xwtt() {
+        xwt $1 >& $1.out &
+        ln -sf $1.out testcases.out
+    }
+
