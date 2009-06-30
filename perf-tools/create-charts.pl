@@ -3,13 +3,23 @@ use strict;
 use warnings;
 use YAML qw/LoadFile/;
 use URI::GoogleChart;
+use Getopt::Long;
 
-my $data = LoadFile('perf-data.yaml');
+my $datafile = 'www-perf.yaml';
+my $prefix   = 'prod';
+GetOptions(
+    'datafile=s' => \$datafile,
+    'prefix=s'   => \$prefix,
+);
+
+my $data = LoadFile($datafile);
+$data = [ sort {$b->{date} cmp $a->{date}} @$data ];
 
 my @charts;
 my @total_ffs;
 my $day_count = 0;
 my %path_times;
+my $first_piechart;
 for my $day (@$data) {
     my @day_pie_data;
     my $ffs_total = 0;
@@ -30,6 +40,7 @@ for my $day (@$data) {
         data => [ map { $_->{median} } @day_pie_data ],
         label => [ map { $_->{label} } @day_pie_data ],
     );
+    $first_piechart ||= $chart;
 
     if ($day_count < 5) {
         push @charts, {
@@ -39,18 +50,18 @@ for my $day (@$data) {
     };
     $day_count++;
 
-    # \3 re-creates fyi
     unshift @total_ffs, $ffs_total;
 }
 
 my @paths = sort { $path_times{$b} <=> $path_times{$a} } keys %path_times;
 my @slow_paths = splice @paths, 0, 10;
+
 unshift @charts, _slow_path_chart($data, \@slow_paths);
-my @recent_data = splice @$data, 0, 10;
+my @recent_data = splice @$data, 0, 5;
 unshift @charts, _slow_path_chart(\@recent_data, \@slow_paths);
 
 
-my $ffs_sparkchart = URI::GoogleChart->new("sparklines", 300, 100,
+my $ffs_sparkchart = URI::GoogleChart->new("sparklines", 280, 100,
     data => \@total_ffs,
     title => 'Relative request load over time',
 );
@@ -61,11 +72,11 @@ unshift @charts, {
 
 my $base_dir = "$ENV{HOME}/public_html/perf";
 mkdir $base_dir;
-open(my $ffsfh, ">$base_dir/prod-ffs.html") or die $!;
+open(my $ffsfh, ">$base_dir/$prefix-ffs.html") or die $!;
 print $ffsfh qq{<html><body><img src="$ffs_sparkchart"></body></html>};
 close $ffsfh;
 
-open(my $fh, ">$base_dir/prod.html") or die $!;
+open(my $fh, ">$base_dir/$prefix.html") or die $!;
 print $fh <<EOT;
 <html>
   <head><title>Perf data</title></head>
@@ -93,7 +104,7 @@ sub _slow_path_chart {
         for my $day (@$data) {
             my $d = $day->{paths}{$p};
             my $ffs = ($d->{calls}||0) * ($d->{median}||0);
-            unshift @pathdata, $ffs ? log($ffs) / log(10) : $ffs;
+            unshift @pathdata, $ffs;
         }
         push @data, \@pathdata;
     }

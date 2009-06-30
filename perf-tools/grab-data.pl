@@ -4,15 +4,23 @@ use warnings;
 use Socialtext::Resting::Getopt qw/get_rester/;
 use Socialtext::WikiObject;
 use YAML qw/DumpFile/;
+use Getopt::Long;
 
 my $R = get_rester(workspace => 'dev-tasks',
     server => 'https://www2.socialtext.net');
 
+my $filter = 'www perf';
+my $datafile = 'www-perf.yaml';
+GetOptions(
+    'filter=s' => \$filter,
+    'datafile=s' => \$datafile,
+);
+
 $R->accept('perl_hash');
 my $pages = $R->get_taggedpages('perf blog');
 
-$pages = [ map { $_->{name} } grep {$_->{name} =~ m/www perf/i} @$pages ];
-my @recent = splice @$pages, 0, 30;
+$pages = [ map { $_->{name} } grep {$_->{name} =~ m/$filter/i} @$pages ];
+my @recent = splice @$pages, 0, 45;
 
 $R->accept('text/x.socialtext-wiki');
 my @data;
@@ -43,4 +51,4 @@ for my $page (@recent) {
     push @data, \%daydata;
 }
 
-DumpFile('perf-data.yaml', \@data);
+DumpFile($datafile, \@data);
