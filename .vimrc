@@ -15,6 +15,9 @@ au FileType vim set iskeyword+=. iskeyword+=/ iskeyword+=~
 au BufNewFile,BufRead COMMIT_EDITMSG goto 1
 set splitright
 
+" don't use temp files; just pipe stuff to shell commands
+set noshelltemp
+
 set termencoding=utf-8
 set encoding=utf-8
 set fileencoding=utf-8
