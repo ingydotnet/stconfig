@@ -1,0 +1,111 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use FindBin;
+use Cwd;
+use File::chdir;
+use Getopt::Long;
+
+my $force;
+GetOptions(
+    'f|force' => \$force,
+);
+
+make_symlinks();
+make_rtrc();
+link_personal_config();
+exit;
+
+sub _stconfig_base {
+    my $base = Cwd::abs_path($FindBin::Bin);
+
+    # A hack so this stuff works when packaged
+    if ($base eq '/usr/bin') {
+        $base = "/usr/share/stconfig";
+    }
+
+    return $base;
+}
+
+sub make_symlinks {
+    my $base = _stconfig_base();
+
+    die unless $ENV{HOME};
+    chdir($ENV{HOME});
+
+    link_or_descend($base, $_) for all_files($base);
+}
+
+sub make_rtrc {
+    my $rc = "$ENV{HOME}/.rtrc";
+    return if -e $rc;
+    if (open(my $fh, ">$rc")) {
+        print $fh "server https://rt.socialtext.net:444\nuser $ENV{USER}\n";
+        close($fh);
+    }
+}
+
+sub all_files {
+    my $base = shift;
+    my %ignores = map { $_ => 1 } qw(
+        .
+        ..
+        .svn
+        .git
+        stconfig-setup
+        socialtext.vim
+        Makefile
+        debian
+    );
+    opendir DIR, $base or die;
+    my @files;
+    while (my $file = readdir(DIR)) {
+        push @files, $file
+          unless $ignores{$file};
+    }
+    return sort @files;
+}
+
+sub link_or_descend {
+    my $base = shift;
+    my $file = shift;
+    my $dest = "$base/$file";
+    if (-d $file && ! -l $file && -d $dest) {
+        warn "Descending into directory $file\n";
+        {
+            local $CWD = $file;
+            link_or_descend($dest, $_) for all_files($dest);
+        }
+    } elsif (-e $file and !$force) {
+        warn "    skipping $file, already exists.\n"
+            # no need to warn if it's a known symlink
+            if not(-l $file) or $dest ne readlink($file);
+    } else {
+        warn "Linking $file\n";
+        unlink $file; # This removes stale symlinks.
+        symlink($dest, $file) or die "link $file -> $dest: $!\n";
+    }
+}
+
+sub link_personal_config {
+    my ($username) = getpwuid($>);
+    my $base = _stconfig_base();
+
+    my $personal_rc = "$base/personal/${username}_after";
+    if (! -e $personal_rc) {
+        warn "    skipping $personal_rc, doesn't exist\n";
+        return;
+    }
+
+    my $personal_symlink = "$ENV{HOME}/.stconfig-after";
+    return if -l $personal_symlink;
+    if (-f $personal_symlink) {
+        warn "    skipping $personal_rc, file exists\n";
+        return;
+    }
+
+    print "Linking $personal_symlink\n";
+    unlink $personal_symlink; # remove stale symlinks
+    symlink($personal_rc, $personal_symlink) or 
+        die "link $personal_rc -> $personal_symlink: $!";
+}

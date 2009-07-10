@@ -1,0 +1,13 @@
+Package: stconfig
+Version: 20090710-1247253111
+Section: misc
+Priority: optional
+Architecture: all
+Depends: libfile-chdir-perl, liberror-perl, libfile-find-rule-perl, zsh
+Suggests: st-dev
+Installed-Size: 14128
+Maintainer: Matthew O'Connor <matthew.oconnor@socialtext.com>
+Description: Socialtext Developer Config. Files
+    This package contains a number of developer config files used by
+    Socialtext devlopers.  The config files are optional and are only
+    installed in your home directory if you run stconfig-setup.
