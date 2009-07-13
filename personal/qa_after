@@ -140,7 +140,6 @@ else
 
 fi
 
-
     xwtt() {
         xwt $1 >& $1.out &
         ln -sf $1.out testcases.out
