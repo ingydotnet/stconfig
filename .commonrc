@@ -13,4 +13,3 @@ alias profile='source ~/.bashrc'
 
 export HISTIGNORE="&:[bf]g:exit"
 export PGDATABASE=NLW_$(whoami)
-export ST_APP_CONFIG=$HOME/.nlw/etc/socialtext/appliance.conf
