@@ -11,6 +11,7 @@ GetOptions( \%opts,
     'no-restart'
 ) or usage();
 
+shell_run('st-git-all @-checkout .gitignore nlw/.gitignore >/dev/null || true');
 shell_run('st-git-all '. ($opts{quiet} ? '@' : '') . 'pull --rebase');
 shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
 
