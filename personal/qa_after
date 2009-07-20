@@ -40,6 +40,7 @@ if [ -e /etc/socialtext/socialtext.conf ]; then
 else
 
     # aliases for a dev env
+    alias pdel='$ST_CURRENT/socialtext-reports/parse-dev-env-logs'
     alias gunp='pushd $ST_CURRENT; st-git-all \@fetch;gunpulledall; popd'
     alias sta='$ST_CURRENT/nlw/bin/st-admin '
     alias makeme='$ST_CURRENT/nlw/dev-bin/st-make-js; restartme;'
