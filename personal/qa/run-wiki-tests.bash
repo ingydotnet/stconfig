@@ -53,7 +53,7 @@ if [ $FRESHDEV ]; then
     echo "Setting benchmark mode to prevent JS make on every page load"
     echo "Use st-make-js after every rb to make JS once"
     $NLW_BIN/st-config set benchmark_mode 1
-
+    $NLW_DEVBIN/st-socialcalc enable
 fi
 
 cd $ST_CURRENT
@@ -61,8 +61,5 @@ echo plan-page is $1
 echo plan-workspace is $PLAN_WORKSPACE
 echo plan-server is $PLAN_SERVER
 
-$NLW_DEVBIN/st-socialcalc enable
-
-export ST_SKIN_NAME=s3;
 ~/stbin/run-wiki-tests --no-maximize --test-username "$USERNAME" --test-email "$USERNAME" --plan-server "$PLAN_SERVER" --plan-workspace "$PLAN_WORKSPACE" --timeout 60000 --plan-page "$1" >& testcases.out&
 echo RUNNING ... tail -f $ST_CURRENT/testcases.out to monitor progress
