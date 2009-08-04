@@ -1,9 +1,14 @@
 #!/usr/bin/zsh
 
+LC_ALL=C
 HOSTNAME=`hostname`
-if [ "$HOSTNAME" = "topaz.socialtext.net" ]; then
-    keychain $HOME/.ssh/id_dsa
-    source $HOME/.keychain/topaz.socialtext.net-sh
+if [ -d $HOME/.keychain ]; then
+    if [ -f $HOME/.ssh/id_dsa ]; then
+        keychain $HOME/.ssh/id_dsa
+    elif [ -f $HOME/.ssh/id_rsa ]; then
+        keychain $HOME/.ssh/id_rsa
+    fi
+    source $HOME/.keychain/*-sh
 fi
 
 export PATH=/usr/local/git/bin:$PATH
