@@ -3,6 +3,7 @@ START_PORT=20000
 (
 for U in `ls /home`; do
     if [ -d /home/$U/src/st/socialtext/nlw ]; then
+        id -u $U 2>/dev/null >&2 || continue
         ID=`id -u $U` 
         PORT=$(($START_PORT+$ID))
         echo "$PORT    $U"
