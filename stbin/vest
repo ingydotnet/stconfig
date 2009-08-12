@@ -11,6 +11,7 @@ my $repo;
 my $upgrade_to;
 my $plugins;
 my $apt_server = $ENV{ST_APT} || 'https://apt.socialtext.net';
+my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
 my ($test_data, $test_data_only, $staging_db, $staging_db_only);
@@ -144,8 +145,12 @@ sub install_test_data {
 
 sub install_staging_db {
     my $local_tmp = "/tmp/socialtext-$$.sql";
-    shell_run("scp www2.socialtext.net:/var/www/socialtext/storage/db-backups/socialtext.sql $local_tmp");
+    shell_run("scp ${staging_host}:/var/www/socialtext/storage/db-backups/socialtext.sql $local_tmp");
     shell_run("scp $local_tmp ${ve_name}:/tmp/socialtext.sql");
+    unlink $local_tmp;
+
+    shell_run("scp ${staging_host}:/etc/socialtext/ldap.yaml $local_tmp");
+    shell_run("scp $local_tmp ${ve_name}:/etc/socialtext/ldap.yaml");
     unlink $local_tmp;
 
     exec_on_ve(
