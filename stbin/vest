@@ -150,10 +150,11 @@ sub install_staging_db {
     unlink $local_tmp;
 
     shell_run("scp ${staging_host}:/etc/socialtext/ldap.yaml $local_tmp");
-    shell_run("scp $local_tmp ${ve_name}:/etc/socialtext/ldap.yaml");
+    shell_run("scp $local_tmp ${ve_name}:$local_tmp");
     unlink $local_tmp;
 
     exec_on_ve(
+        q{mv $local_tmp /etc/socialtext/ldap.yaml},
         q{/etc/init.d/apache-perl stop},
         q{/etc/init.d/ceqlotron stop},
         q{/etc/init.d/postgresql-8.1 restart},
