@@ -26,7 +26,6 @@ sudo apt-get install --yes libtap-formatter-html-perl
 
 echo "Installing additional test dependencies"
 sudo apt-get install --yes libtest-http-perl
-sudo apt-get install --yes st-perl-test-deps
 
 echo INSTALLING and ENABLING all plugins for all accounts
 sudo st-appliance-install-plugin dashboard people socialcalc signals
