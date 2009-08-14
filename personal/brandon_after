@@ -6,3 +6,9 @@ export PERL5LIB="$ST_SRC_BASE/socialtext/nlw/lib"
 # This will let us run wikitests.
 QA_AFTER=$ST_SRC_BASE/stconfig/personal/qa_after
 [ -e $QA_AFTER ] && source $QA_AFTER
+
+# Set up our keychain, if available.
+$HOSTNAME=$( hostname )
+keychain $HOME/.ssh/id_dsa
+source $HOME/.keychain/${HOSTNAME}-sh
+
