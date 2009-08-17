@@ -41,6 +41,7 @@ for my $page (@recent) {
             $col =~ s/^\*(?:\% > )?(.+)\*$/$1/;
             $rowdata{lc $col} = $row->[$i++];
         }
+        $rowdata{median} = 0 unless $rowdata{median} =~ m/^[\d.]+$/;
         unless (defined $rowdata{'ffs score'}) {
             $rowdata{'ffs score'} = $rowdata{calls} * $rowdata{'3s'} 
                                     * $rowdata{median};
