@@ -65,6 +65,8 @@ assert_branch_exists($branch);
 # color_print('blue', "Stashing local modifications on your current branch\n");
 # git_all(qq{\@stash save 'auto-stash for set-branch'});
 
+git_all('@-checkout .gitignore nlw/.gitignore >/dev/null || true');
+
 foreach my $repo (@repos) {
     color_print('blue', "Setting working copy of $repo to $branch\n");
     checkout_branch($repo, $branch);
