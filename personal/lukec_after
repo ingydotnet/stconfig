@@ -4,6 +4,7 @@ set -o vi
 export TD=lukecloss@jervis.textdrive.com
 export VHS='thehackery.ca -p2249'
 export ST_VE_NAME=dev4
+alias t='ssh topaz.socialtext.net'
 
 function corpblog {
     convrad -l "luke's blog"
@@ -28,6 +29,5 @@ fi
 
 export PROMPT_COMMAND=_git_prompt_color
 
-if [ -f /sw/bin/init.sh ]; then
-    source /sw/bin/init.sh
-fi
+export PATH="$PATH:/sw/bin:/usr/local/git/bin"
+export MANPATH="$MANPATH:/usr/local/git/man"
