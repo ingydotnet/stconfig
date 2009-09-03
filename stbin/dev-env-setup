@@ -21,7 +21,9 @@ rm ~/.bashrc
 rm ~/.bash_profile
 rm ~/.zshrc
 ~/src/st/stconfig/stconfig-setup
+set +x
 . ~/.bashrc
+set -x
 ~/stbin/git-std-cfg
 
 cd ~/src/st
