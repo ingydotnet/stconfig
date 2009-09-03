@@ -14,7 +14,7 @@ read
 
 # clone stconfig
 cd src/st
-git clone git://github.com/socialtext/stconfig.git
+git clone git@github.com:socialtext/stconfig.git
 
 # clone stconfig
 rm ~/.bashrc
@@ -23,6 +23,10 @@ rm ~/.zshrc
 ~/src/st/stconfig/stconfig-setup
 . ~/.bashrc
 ~/stbin/git-std-cfg
+
+cd ~/src/st
+git clone git@github.com:socialtext/st-build-tools.git
+
 
 # Socialtext repo is huge, so if we have a local copy then use it.
 if [[ -d ~lukec/src/st/socialtext ]]; then
@@ -33,7 +37,15 @@ fi
 
 set-branch master
 
-echo
-echo
-echo "Now run: . ~/.bashrc"
-echo "Then you can sb and fdefs on into the sunset"
+set +x
+cat - <<EOM
+
+Now run: . ~/.bashrc  or log-out/in
+
+Run this as sudo on this box:
+  sudo -u postgres createuser -d -s -r $USER
+  sudo -u postgres psql $PGDATABASE -c "ALTER USER $USER SET search_path TO public,streports"
+
+Then you can sb and fdefs on into the sunset
+
+EOM
