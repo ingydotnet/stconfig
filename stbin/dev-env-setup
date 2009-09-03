@@ -3,16 +3,37 @@ set -x
 
 cd ~
 mkdir -p src/st
-cd src/st
+mkdir .ssh
+cat - > .ssh/config <<EOT
+Host github.com
+	IdentityFile ~/.ssh/id_rsa_github
+EOT
 
+echo "In another window, copy .ssh/id_rsa_github from testrunner@galena"
+read
+
+# clone stconfig
+cd src/st
+git clone git://github.com/socialtext/stconfig.git
+
+# clone stconfig
 rm ~/.bashrc
 rm ~/.bash_profile
 rm ~/.zshrc
 ~/src/st/stconfig/stconfig-setup
-. ~/.bash_profile
+. ~/.bashrc
+~/stbin/git-std-cfg
 
-sudo apt-get install st-perl-deps
-
-sudo -u postgres createuser lukec
+# Socialtext repo is huge, so if we have a local copy then use it.
+if [[ -d ~lukec/src/st/socialtext ]]; then
+	cd ~/src/st
+	git clone -l ~lukec/src/st/socialtext
+	cp ~lukec/src/st/socialtext/.git/config socialtext/.git/config
+fi
 
 set-branch master
+
+echo
+echo
+echo "Now run: . ~/.bashrc"
+echo "Then you can sb and fdefs on into the sunset"
