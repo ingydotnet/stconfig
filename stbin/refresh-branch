@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use lib "$ENV{ST_SRC_BASE}/current/nlw/lib";
+use lib "$ENV{ST_SRC_BASE}/socialtext/nlw/lib";
 use Term::ANSIColor;
 use Getopt::Long;
 
@@ -13,7 +13,7 @@ GetOptions( \%opts,
 
 shell_run('st-git-all @-checkout .gitignore nlw/.gitignore >/dev/null || true');
 shell_run('st-git-all '. ($opts{quiet} ? '@' : '') . 'pull --rebase');
-shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
+shell_run("cd $ENV{ST_SRC_BASE}/socialtext && refresh-submodules");
 
 exit;
 

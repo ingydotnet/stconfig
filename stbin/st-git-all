@@ -18,7 +18,7 @@ $| = 1;
 print "++";
 
 # Run the command against all repos.
-my $st_current = "$ENV{ST_SRC_BASE}/current";
+my $st_current = "$ENV{ST_SRC_BASE}/socialtext";
 my $overall_err = 0;
 my @repo_list = repo_list();
 my %proc;
