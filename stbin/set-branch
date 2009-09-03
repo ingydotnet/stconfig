@@ -41,17 +41,7 @@ $branch =~ s#^tags/##;
 chdir $src_base;
 
 unless (-d 'socialtext') {
-    my $old = -l 'current' ? readlink('current') : 'master';
-    if (-d $old) {
-        warn color('red') . "Warning:". color('reset')
-            . " I'm moving the socialtext repo to live at $src_base/socialtext\n";
-        warn "We no longer put this repository in the name of the branch.\n";
-        shell_run(qq{mv $old socialtext});
-        shell_run(qq{ln -sf socialtext current});
-    }
-    else {
-        clone_master();
-    }
+    clone_master();
 }
 
 # make sure that we've got the sub repos set up
@@ -72,7 +62,7 @@ foreach my $repo (@repos) {
     checkout_branch($repo, $branch);
 }
 
-shell_run("cd $ENV{ST_SRC_BASE}/current && refresh-submodules");
+shell_run("cd $ENV{ST_SRC_BASE}/socialtext && refresh-submodules");
 
 exit;
 
@@ -267,7 +257,6 @@ sub clone_master {
     color_print('blue', "Setting up master repo from GitHub...");
 
     clone_repo('socialtext');
-    shell_run(qq{ln -sf socialtext current});
 
     if ($branch ne 'master') {
         assert_branch_exists($branch);
