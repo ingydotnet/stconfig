@@ -31,7 +31,7 @@ sub shell_run {
     my $rc = system $cmd;
     unless ($rc == 0) {
         color_print('red', "Error running $cmd\n");
-        exit $rc unless $nodie;
+        exit 1 unless $nodie;
     }
     return $rc == 0;
 }
