@@ -7,6 +7,6 @@ echo SETTING UP WIKITESTS
 /usr/share/stconfig/stbin/qa/appliance/st-appliance-wikitests
 export WIKIEMAIL=$HOSTNAME
 echo STARTING run-wiki-tests
-/usr/share/stconfig/stbin/run-wiki-tests --no-maximize --test-username wikitester@ken.socialtext.net  --test-email wikitester@ken.socialtext.net --timeout 60000 --plan-server http://$HOSTNAME --test-server http://$HOSTNAME --plan-page "$1" >& /tmp/"$1".out &
+sudo -u www-data /usr/share/stconfig/stbin/run-wiki-tests --no-maximize --test-username wikitester@ken.socialtext.net  --test-email wikitester@ken.socialtext.net --timeout 60000 --plan-server http://$HOSTNAME --test-server http://$HOSTNAME --plan-page "$1" >& /tmp/"$1".out &
 echo LINKING
 ln -sf /tmp/"$1".out /tmp/testcases.out
