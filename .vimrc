@@ -16,7 +16,9 @@ au BufNewFile,BufRead COMMIT_EDITMSG goto 1
 set splitright
 
 " don't use temp files; just pipe stuff to shell commands
-set noshelltemp
+if has('noshelltemp')
+    set noshelltemp
+endif
 
 set termencoding=utf-8
 set encoding=utf-8
