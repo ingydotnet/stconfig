@@ -5,8 +5,10 @@ use Getopt::Long;
 use lib "$ENV{ST_CURRENT}/nlw/lib";
 use Socialtext::System qw/shell_run/;
 
+my $test_script = $ENV{ST_TEST_SCRIPT} || '/usr/share/stconfig/stbin/qa/appliance/st-appliance-testme';
 my $ve_host = $ENV{ST_VE_HOST} || 'zircon.socialtext.net';
 my $ve_name = $ENV{ST_VE_NAME};
+my $test_case;
 my $repo;
 my $upgrade_to;
 my $plugins;
@@ -16,6 +18,7 @@ my $arch = 'amd64';
 my $wipe_it = 0;
 my ($test_data, $test_data_only, $staging_db, $staging_db_only);
 GetOptions(
+    'c|test-case=s' => \$test_case,
     'v|ve-name=s' => \$ve_name,
     'r|repo=s'    => \$repo,
     'u|upgrade-to=s' => \$upgrade_to,
@@ -85,6 +88,7 @@ install_test_data() if $test_data;
 eval { run_tests() }; warn $@ if $@;
 install_plugins() if $plugins;
 install_staging_db() if $staging_db;
+exec_on_ve("$test_script $test_case") if $test_case;
 
 exit;
 
@@ -112,6 +116,7 @@ Options:
   -t --test-data  create devnull1 user
   -a --arch       CPU architecture (amd64 (default) or i386)
   -w --wipe       Wipe the VE clean first.
+  -c --case       Name of the testcase to run using '$test_script'
   
 Passwordless SSH
   If you'd like an SSH key set up on the VE, commit a public 

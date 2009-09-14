@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Script designed to be called using vest -c TESTCASE. Set up wikitests and run the testcase
+# Output to /tmp because I couldn't get it to work in the vest $USER homedir
+
+echo SETTING UP WIKITESTS
+/usr/share/stconfig/stbin/qa/appliance/st-appliance-wikitests
+export WIKIEMAIL=$HOSTNAME
+echo STARTING run-wiki-tests
+/usr/share/stconfig/stbin/run-wiki-tests --no-maximize --test-username wikitester@ken.socialtext.net  --test-email wikitester@ken.socialtext.net --timeout 60000 --plan-server http://$HOSTNAME --test-server http://$HOSTNAME --plan-page "$1" >& /tmp/"$1".out &
+echo LINKING
+ln -sf /tmp/"$1".out /tmp/testcases.out
