@@ -3,6 +3,8 @@
 #some don't quite work, like dump_hv and hv_fetch, 
 #where's the bloody manpage for .gdbinit syntax?
 
+handle SIGPIPE nostop noprint pass
+
 define thttpd
    run -X -f `pwd`/t/conf/httpd.conf -d `pwd`/t
 #   set $sv = perl_eval_pv("$Apache::ErrLog = '/tmp/mod_perl_error_log'",1)
@@ -31,29 +33,30 @@ define defstash
 end
 
 define curinfo
-   printf "%d:%s\n", PL_curcop->cop_line, \
-   ((XPV*)(*(XPVGV*)PL_curcop->cop_filegv->sv_any)\
-   ->xgv_gp->gp_sv->sv_any)->xpv_pv 
+    set $THX = Perl_get_context()
+    printf "%d:%s\n", \
+        $THX->Tcurcop->cop_line, \
+        ((XPV*)(*(XPVGV*) $THX->cop_filegv->sv_any)->xgv_gp->gp_sv->sv_any)->xpv_pv 
 end
 
 define SvPVX
-print ((XPV*) ($arg0)->sv_any )->xpv_pv
+    print ((XPV*) ($arg0)->sv_any )->xpv_pv
 end
 
 define SvCUR
-   print ((XPV*)  ($arg0)->sv_any )->xpv_cur 
+    print ((XPV*)  ($arg0)->sv_any )->xpv_cur 
 end
 
 define SvLEN
-   print ((XPV*)  ($arg0)->sv_any )->xpv_len 
+    print ((XPV*)  ($arg0)->sv_any )->xpv_len 
 end
 
 define SvEND
-   print (((XPV*)  ($arg0)->sv_any )->xpv_pv + ((XPV*)($arg0)->sv_any )->xpv_cur) - 1
+    print (((XPV*)  ($arg0)->sv_any )->xpv_pv + ((XPV*)($arg0)->sv_any )->xpv_cur) - 1
 end
 
 define SvSTASH
-   print ((XPVHV*)((XPVMG*)($arg0)->sv_any )->xmg_stash)->sv_any->xhv_name
+    print ((XPVHV*)((XPVMG*)($arg0)->sv_any )->xmg_stash)->sv_any->xhv_name
 end
 
 define SvTAINTED
@@ -116,7 +119,7 @@ define dumpav
     set $n = ((XPVAV*)  ($arg0)->sv_any)->xav_fill
     set $i = 0
     while $i <= $n
-        set $sv = *Perl_av_fetch($arg0, $i, 0)
+        set $sv = *Perl_av_fetch(my_perl, $arg0, $i, 0)
         printf "[%u] -> `%s'\n", $i, ((XPV*) ($sv)->sv_any )->xpv_pv
         set $i = $i + 1
     end
@@ -168,27 +171,27 @@ define svpeek
    printf "%s\n", $pv
 end
 
-define caller
-   set $sv = perl_eval_pv("scalar caller", 1)
+define pcaller
+   set $sv = eval_pv("scalar caller", 1)
    printf "caller = %s\n", ((XPV*) ($sv)->sv_any )->xpv_pv
 end
 
 define cluck
-   set $sv = perl_eval_pv("Carp::cluck(); `tail '$Apache::ErrLog'`", 1)
+   set $sv = eval_pv("Carp::cluck(); `tail '$Apache::ErrLog'`", 1)
    printf "%s\n", ((XPV*) ($sv)->sv_any )->xpv_pv
 end
 
 define longmess
-   set $sv = perl_eval_pv("Carp::longmess()", 1)
+   set $sv = eval_pv("Carp::longmess()", 1)
    printf "%s\n", ((XPV*) ($sv)->sv_any )->xpv_pv
 end
 
 define shortmess
-   set $sv = perl_eval_pv("Carp::shortmess()", 1)
+   set $sv = eval_pv("Carp::shortmess()", 1)
    printf "%s\n", ((XPV*) ($sv)->sv_any )->xpv_pv
 end
 
 define perl_get_sv
-    set $sv = perl_get_sv($arg0, 0)
+    set $sv = Perl_get_sv($arg0, 0)
     printf "%s\n", $sv ? ((XPV*) ((SV*)$sv)->sv_any)->xpv_pv : "undef"
 end
