@@ -25,6 +25,7 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/stconfig
+	cp ../current/nlw/dev-bin/st-populate-reports-db $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
 
 binary: build install
 	dh_testdir
