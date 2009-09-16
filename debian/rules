@@ -26,6 +26,10 @@ install: build
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/stconfig
 	cp ../current/nlw/dev-bin/st-populate-reports-db $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
+	cp ../current/nlw/dev-bin/st-qa-growth-report-add-members $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
+	cp ../current/nlw/dev-bin/st-qa-growth-report-populate-db $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
+	cp ../current/nlw/dev-bin/st-consume-stub-reports $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
+	cp ../current/nlw/dev-bin/st-create-account-data $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliances
 
 binary: build install
 	dh_testdir
