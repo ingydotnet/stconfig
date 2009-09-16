@@ -1,5 +1,0 @@
-#!/usr/bin/perl
-use strict;
-use warnings;
-use FindBin;
-system("$FindBin::Bin/../../../../current/nlw/dev-bin/st-populate-reports-db");
