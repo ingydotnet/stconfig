@@ -43,6 +43,8 @@ if ($ve_name =~ m/^qa\d$/) {
 
 if ($upgrade_to) {
     exec_on_ve( 
+        qq{echo "# Dapper is commented out so we find deps from there that are not" > /etc/apt/sources.list},
+        qq{echo "# yet copied into our deps/release repos for DHS." > /etc/apt/sources.list},
         qq{echo "# deb $apt_server/ubuntu dapper main universe" > /etc/apt/sources.list},
         qq{echo "deb $apt_server/ubuntu dapper-security main universe" >> /etc/apt/sources.list},
         qq{echo "deb $apt_server/socialtext stqa main alien" >> /etc/apt/sources.list},
