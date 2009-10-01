@@ -157,6 +157,7 @@ alias gunpulledall='gunpushed-all --st-reverse'
 alias grh='git reset --hard HEAD'
 alias grh-all='st-git-all reset --hard HEAD'
 alias grhall='st-git-all reset --hard HEAD'
+alias 'last-appliance-release'='ssh apt tail -n 1 /var/www/apt/socialtext/dists/appliance-path'
 
 provelog() { NLW_APPCONFIG=syslog_level=debug prove "$@"; }
 
