@@ -9,27 +9,29 @@
 #
 #   DIRECTORY defaults to ~/.nlw/log
 
-logprefix=''
-
-case "$1" in
-    (-1e)
-        subdir='apache-perl'
-        logprefix='nlw-error'
-        shift
-        ;;
-    (-1)
-        subdir='apache-perl'
-        shift
-        ;;
-    (-2)
-        subdir='apache2'
-        shift
-        ;;
-    (*)
-        subdir='*'
-        ;;
-esac
+logs=''
 
 dir=${1:-~/.nlw/log}
 
-eval exec colorizelogs "$dir/$subdir/$logprefix*.log"
+case "$1" in
+    (-1e)
+        logs="$logs $dir/apache-perl/nlw-error*.log"
+        shift
+        ;;
+    (-1)
+        logs="$logs $dir/apache-perl/*.log"
+        shift
+        ;;
+    (-2)
+        logs="$logs $dir/apache2/*.log"
+        shift
+        ;;
+    (-p)
+        logs="$logs $dir/json-proxy.log"
+        ;;
+    (*)
+        logs="$logs $dir/*/*.log $dir/json-proxy.log"
+        ;;
+esac
+
+eval exec colorizelogs $logs
