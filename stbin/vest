@@ -119,6 +119,8 @@ Options:
   -a --arch       CPU architecture (amd64 (default) or i386)
   -w --wipe       Wipe the VE clean first.
   -c --case       Name of the testcase to run using '$test_script'
+  --staging-db    Grab the DB off of staging in set it up on ur VE
+  --staging-db-only Same as above but no VE setup.
   
 Passwordless SSH
   If you'd like an SSH key set up on the VE, commit a public 
