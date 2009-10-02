@@ -81,6 +81,7 @@ sudo st-admin reset-account-skin --account $HOSTNAME  --skin s3
 # Make www-data own /etc/socialtext/ files so st-bootstrap-openldap will
 # succeed from wikitests.
 sudo chown -R www-data:www-data /etc/socialtext/
+sudo chmod 666 /etc/socialtext/ldap.yaml
 
 # link appliance wikitest files into the path
 sudo ln -sf $WIKITESTS/st-bootstrap-openldap /usr/bin/
