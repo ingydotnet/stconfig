@@ -16,13 +16,3 @@ export PATH=/usr/local/git/bin:$PATH
 if [ -f /sw/bin/init.sh ]; then
     source /sw/bin/init.sh
 fi
-
-if [ -n "$SSH_CLIENT" ]; then
-    # Variables to save
-    echo "export SSH_CLIENT=\"$SSH_CLIENT\""         >! "$HOME/.agent-vars"
-    echo "export SSH_TTY=\"$SSH_TTY\""               >> "$HOME/.agent-vars"
-    echo "export SSH_AUTH_SOCK=\"$SSH_AUTH_SOCK\""   >> "$HOME/.agent-vars"
-    echo "export SSH_CONNECTION=\"$SSH_CONNECTION\"" >> "$HOME/.agent-vars"
-    echo "export DISPLAY=\"$DISPLAY\""               >> "$HOME/.agent-vars"
-fi
-  
