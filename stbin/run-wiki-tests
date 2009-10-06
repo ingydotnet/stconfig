@@ -218,6 +218,7 @@ Options:
                         Default: '10000'
  --fake-content-file [file] Specify a file to read from instead of the wiki.
  --verbose              Show debugging information
+ --version              Show version information
  --nomaximize           Don't remove the selenium-rc frame in the browser
  --perf-summary         Output a summary of the performance timings
 
