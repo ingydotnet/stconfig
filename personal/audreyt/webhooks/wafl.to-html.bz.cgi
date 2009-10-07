@@ -49,9 +49,8 @@ sub desc_for_id {
         my %bug = %{ XMLin(fetch_bug_xml_for_id($id))->{bug} } or die;
         my @fields = map {$_ ? "\u\L$_" : ()} @bug{qw/ bug_severity priority resolution bug_status /};
         push @fields, (split(/\s+/, $bug{assigned_to}{name}))[0] if $bug{bug_status} eq 'ASSIGNED';
-        Socialtext::String::html_escape(
-            $bug{short_desc} . ' (' . join('/', @fields) . ')'
-        );
+        my $desc = Socialtext::String::html_escape( $bug{short_desc} );
+        "$desc (" . join('&nbsp;', map { Socialtext::String::html_escape($_) } @fields) . ')';
     } or '';
 }
 
