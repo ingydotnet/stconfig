@@ -57,7 +57,7 @@ sub desc_for_id {
 sub fetch_bug_xml_for_id {
     my $id = shift;
 
-    return Socialtext::Pluggable::Plugin::Agile->new->_fetch_bug_xml(
+    return $agile->_fetch_bug_xml(
         "id-$id" => {
             'field0-0-0' => 'bug_id',
             'type0-0-0'  => 'equals',
