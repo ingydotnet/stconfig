@@ -157,6 +157,20 @@ alias gunpulledall='gunpushed-all --st-reverse'
 alias grh='git reset --hard HEAD'
 alias grh-all='st-git-all reset --hard HEAD'
 alias grhall='st-git-all reset --hard HEAD'
+
+# use "gundo" to un-commit your last commit.  Changes will not go into your
+# index.
+#
+# use "gundo --soft" to undo the last commit, plus put the last commit back
+# into your index (adding to what you've got staged in the index).  See also:
+# "git commit --amend".
+#
+# use "gundo --hard" to blow away the last commit completely (including
+# whatever's currently staged in your index).
+alias gundo='git reset HEAD^'
+alias gundo-all='st-git-all reset HEAD^'
+alias gundoall='st-git-all reset HEAD^'
+
 alias 'last-appliance-release'='ssh apt tail -n 1 /var/www/apt/socialtext/dists/appliance-path'
 
 provelog() { NLW_APPCONFIG=syslog_level=debug prove "$@"; }
