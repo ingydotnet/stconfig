@@ -16,7 +16,7 @@ au BufNewFile,BufRead COMMIT_EDITMSG goto 1
 set splitright
 
 " don't use temp files; just pipe stuff to shell commands
-if has('noshelltemp')
+if has('filterpipe')
     set noshelltemp
 endif
 
