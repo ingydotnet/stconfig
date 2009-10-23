@@ -81,7 +81,7 @@ else {
         q{su - -c "cd /root; rm .bashrc; stconfig-setup"},
         qq{su - $ENV{USER} -c "rm .bashrc; stconfig-setup"},
         # Set up local backups
-        q{perl -pi -e "s/dc_eximconfig_configtype=.*$/dc_eximconfig_configtype=local/" /etc/exim4/update-exim4.conf.conf},
+        q{perl -pi -e "s#^local_archivedir: .+#local_archivedir: /tmp/backup#" /etc/socialtext/appliance.conf},
         'mkdir /tmp/backup',
     );
 }
