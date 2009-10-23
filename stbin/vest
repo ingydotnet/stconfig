@@ -169,6 +169,9 @@ sub install_staging_db {
         q{/etc/init.d/postgresql-8.1 restart},
         q{st-db dropdb -s socialtext},
         q{su - postgres -c "psql -q -f /tmp/socialtext.sql"},
+        q{perl -pi -e "s/dc_eximconfig_configtype=.internet./dc_eximconfig_configtype="local"/" /etc/exim4/update-exim4.conf.conf},
+        q{update-exim4.conf},
+        q{/etc/init.d/exim4 restart},
         q{/etc/init.d/ceqlotron start},
         q{/etc/init.d/apache-perl start},
     );
