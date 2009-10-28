@@ -9,6 +9,9 @@ alias fdefs='fresh-dev-env-from-scratch -mbp'
 export EDITOR=vim
 export PAGER=less
 
+# my most regularly used VE
+export ST_VE_NAME=dev3
+
 # add personal Perl stuff to @INC and $PATH
 export PERL5LIB=/home/graham/perl/lib/perl5/`perl -MConfig -e 'print $Config{archname}'`:/home/graham/perl/share/perl/`perl -MConfig -e 'print $Config{version}'`
 export PATH=/home/graham/perl/bin:$PATH
