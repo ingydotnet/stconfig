@@ -87,11 +87,11 @@ cdcrp()   { cd `abs_path $ST_CURRENT/../clients/rest/perl`; }
 cdrpt()   { cd `abs_path $ST_CURRENT/socialtext-reports`; }
 cdapp()   { cd `abs_path $ST_CURRENT/appliance`; }
 cdcon()   { cd `abs_path $ST_CURRENT/appliance/libsocialtext-appliance-perl`; }
-cdctrl()  { cd `abs_path $ST_CURRENT/control`; }
 cdskins()  { cd `abs_path $ST_CURRENT/socialtext-skins`; }
 cdplug() { cd `abs_path $ST_CURRENT/plugins`; }
 cdsc() { cd `abs_path $ST_CURRENT/plugins/socialcalc`; }
 cdscc() { cd `abs_path $ST_CURRENT/socialcalc`; }
+cdctrl()  { cd `abs_path $ST_CURRENT/plugins/control`; }
 cdppl() { cd `abs_path $ST_CURRENT/plugins/people`; }
 cdsig() { cd `abs_path $ST_CURRENT/plugins/signals`; }
 cdwid() { cd `abs_path $ST_CURRENT/plugins/widgets`; }
