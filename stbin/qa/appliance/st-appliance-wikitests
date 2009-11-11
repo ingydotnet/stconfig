@@ -94,6 +94,11 @@ sudo ln -sf $WIKITESTS/st-create-account-data /usr/bin/
 sudo ln -sf $WIKITESTS/st-qa-growth-report-populate-db /usr/bin/
 sudo ln -sf $WIKITESTS/st-populate-reports-db /usr/bin/
 
+echo "POPULATING reports DB"
+sudo st-populate-reports-db
+sudo st-appliance-config set max_objects_for_control_panel 500
+sudo st-appliance-config get max_objects_for_control_panel
+
 echo "Setting up /tmp/backup for Console Backup and Restore testing"
 sudo mkdir -p /tmp/backup
 sudo perl -pi -e "s#^local_archivedir: .+#local_archivedir: /tmp/backup#" /etc/socialtext/appliance.conf
