@@ -1,0 +1,62 @@
+#!/bin/bash -e
+
+# This script is used to run a wikiQtest testset in a silo with its own
+# account, user, and test-data workspace. Those are created by appending a
+# subset number (1,2,3,...) to the names (account-1, user1, test-data-1). If
+# any of those items already exist due to a previous run, the create commands
+# simply fail harmlessly and this script continues.
+
+# By calling this script in quick succession with disjoint testsets (e.g.
+# core_testcases, profile_testcases, mobile_testcases), those testsets will
+# be executed in parallel using the same installation (dev env, VE) of
+# Socialtext AND the same Selenium server.  That is, run this script with 3
+# subsets and their commands will run interleaved in three different
+# simultaneous browser instances driven by one Se server.  Since each is in
+# its own subset silo, they will not interfere with one another as long as the
+# wikitests themselves do not interfere by using fixed names that could
+# collide.
+
+# The result should be a nearly multiplicative speedup in test execution.
+# Preliminary experiments showed that a testset (Profle Testcases) that took
+# 17 minutes to run by itself took between 18-19 minutes to run three parallel
+# copies.
+
+
+USAGE="run-wiki-subset PLAN_PAGE SUBSET_NUMBER"
+
+if [ !  $1  ]
+    then
+        echo  $USAGE
+        exit 1
+    else
+        PLANPAGE="$1"
+fi
+
+if [ !  $2  ]
+    then
+        echo  $USAGE
+        exit 1
+    else
+        SUBSET="$2"
+fi
+
+# detect whether running in dev env
+SUDO='sudo'
+if [ `hostname` == 'talc.socialtext.net' ] || [ `hostname` == 'topaz.socialtext.net' ]; then
+    SUDO=''
+fi
+
+
+echo "Creating subset $SUBSET"
+
+# Note: don't give the test user first or last names or a hyphen within the email address.  wikitests except to use short_username
+
+$SUDO st-admin create-account --name account-$SUBSET || true;
+$SUDO st-admin create-user --account account-$SUBSET --email wikitester$SUBSET@ken.socialtext.net --password d3vnu11l || true;
+$SUDO st-admin clone-workspace --workspace test-data --target test-data-$SUBSET || true;
+$SUDO st-admin set-workspace-config --workspace test-data-$SUBSET account_name account-$SUBSET || true;
+$SUDO st-admin add-workspace-admin --workspace test-data-$SUBSET  --email wikitester$SUBSET@ken.socialtext.net || true;
+
+echo "Starting $PLANPAGE for subset $SUBSET"
+
+/home/$USER/stbin/run-wiki-tests --no-maximize --test-username wikitester$SUBSET@ken.socialtext.net  --test-email wikitester$SUBSET@ken.socialtext.net --test-workspace test-data-$SUBSET --timeout 60000 --plan-page $PLANPAGE
