@@ -101,7 +101,7 @@ bob() { wget -q -O /dev/null "https://irc.socialtext.net:450/bob/$1"; }
 MAC_FILE="~/.nlw/etc/Socialtext/MAC.secret"
 alias muckmac="rm $MAC_FILE; echo bemucked > $MAC_FILE"
 alias accessd="cd /var/log/apache-perl/; ls"
-alias ape='myerrlogs -1e'
+alias ape='myerrlogs -1'
 alias vv='vim ~/.vimrc'
 alias tl='test-less'
 alias tlp='test-less --prove'
