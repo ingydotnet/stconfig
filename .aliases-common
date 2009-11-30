@@ -34,6 +34,7 @@ alias acsh='apt-cache show'
 
 alias rb='refresh-branch'
 alias fdefs='fresh-dev-env-from-scratch'
+alias rp='st-prove --state=failed,save --jobs=4'
 
 if [ -d $HOME/stbin ]; then
     for cmd in `find $HOME/stbin/ -name 'svn*'`; do
