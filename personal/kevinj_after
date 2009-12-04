@@ -11,8 +11,20 @@ if [ -d $HOME/.keychain ]; then
     source $HOME/.keychain/*-sh
 fi
 
-export PATH=/usr/local/git/bin:$PATH
+if [ -d /usr/local/git/bin ]; then
+    export PATH=/usr/local/git/bin:$PATH
+fi
+
 
 if [ -f /sw/bin/init.sh ]; then
     source /sw/bin/init.sh
+fi
+
+if [ -d /opt/local/bin ]; then
+    export PATH=/opt/local/bin:/opt/local/sbin:$PATH
+fi
+
+if [ -f $HOME/Android ]; then
+    export ANDROID_SWT=$HOME/Android/sdk/tools/lib/x86
+    export PATH=$HOME/Android/sdk/tools:$PATH
 fi
