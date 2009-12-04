@@ -1,35 +1,41 @@
 #!/bin/zsh -ef
 
-# USAGE myerrlogs [-1|-2] [DIRECTORY]
+# USAGE myerrlogs [-1|-1a|-2|-2a|-p] [DIRECTORY]
 #
-#   -1      Only apache-perl logs
-#   -1e     Only apache-perl error logs
-#   -2      Only apache2 logs
-#   DEFAULT Everything
+#   -1      Only apache-perl error logs
+#   -1a     Only apache-perl error and access logs
+#   -2      Only apache2 error logs
+#   -2a     Only apache2 error and access logs
+#   -p      Only json-proxy log
+#   -a      All access and error logs
+#   DEFAULT All error logs
 #
 #   DIRECTORY defaults to ~/.nlw/log
 
-logprefix=''
+dir=${2:-~/.nlw/log}
 
 case "$1" in
-    (-1e)
-        subdir='apache-perl'
-        logprefix='nlw-error'
-        shift
-        ;;
     (-1)
-        subdir='apache-perl'
-        shift
+        log="$dir/apache-perl/nlw-error*.log"
+        ;;
+    (-1a)
+        log="$dir/apache-perl/*.log"
         ;;
     (-2)
-        subdir='apache2'
-        shift
+        log="$dir/apache2/nlw-error*.log"
+        ;;
+    (-2a)
+        log="$dir/apache2/*.log"
+        ;;
+    (-p)
+        log="$dir/json-proxy.log"
+        ;;
+    (-a)
+        log="$dir/*/*.log $dir/json-proxy.log"
         ;;
     (*)
-        subdir='*'
+        log="$dir/*/nlw-error*.log $dir/json-proxy.log"
         ;;
 esac
 
-dir=${1:-~/.nlw/log}
-
-eval exec colorizelogs "$dir/$subdir/$logprefix*.log"
+eval exec colorizelogs $log

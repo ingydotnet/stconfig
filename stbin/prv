@@ -44,4 +44,4 @@ OPTIONS=""
 if [ "$DIAGNOSTICS" != "" ]; then
     OPTIONS="$OPTIONS -Mdiagnostics"
 fi
-PERL5OPT=$OPTIONS exec prove -l $switches $tests
+PERL5OPT=$OPTIONS exec prove -l --merge $switches $tests

@@ -73,14 +73,15 @@ echo "ENABLING Socialcalc for all workspaces"
 sudo $WIKITESTS/st-appliance-socialcalc enable
 
 echo "SETTING all skins TO s3"
-sudo st-admin set-account-config --account Socialtext skin_name s3
-sudo st-admin reset-account-skin --account Socialtext --skin s3
-sudo st-admin set-account-config --account $HOSTNAME skin_name s3
-sudo st-admin reset-account-skin --account $HOSTNAME  --skin s3
+#sudo st-admin set-account-config --account Socialtext skin_name s3
+#sudo st-admin reset-account-skin --account Socialtext --skin s3
+#sudo st-admin set-account-config --account $HOSTNAME skin_name s3
+#sudo st-admin reset-account-skin --account $HOSTNAME  --skin s3
 
 # Make www-data own /etc/socialtext/ files so st-bootstrap-openldap will
 # succeed from wikitests.
 sudo chown -R www-data:www-data /etc/socialtext/
+sudo chmod 666 /etc/socialtext/ldap.yaml
 
 # link appliance wikitest files into the path
 sudo ln -sf $WIKITESTS/st-bootstrap-openldap /usr/bin/
@@ -93,8 +94,23 @@ sudo ln -sf $WIKITESTS/st-create-account-data /usr/bin/
 sudo ln -sf $WIKITESTS/st-qa-growth-report-populate-db /usr/bin/
 sudo ln -sf $WIKITESTS/st-populate-reports-db /usr/bin/
 
+echo "POPULATING reports DB"
+sudo st-populate-reports-db
+sudo st-appliance-config set max_objects_for_control_panel 500
+sudo st-appliance-config get max_objects_for_control_panel
+
 echo "Setting up /tmp/backup for Console Backup and Restore testing"
 sudo mkdir -p /tmp/backup
 sudo perl -pi -e "s#^local_archivedir: .+#local_archivedir: /tmp/backup#" /etc/socialtext/appliance.conf
+
+##################################################
+
+echo "Preparing nlw log consumer"
+sudo ln -sf /usr/bin/st-reports-consume-nlw-log /usr/sbin/st-appliance-reports-consume-nlw-log
+sudo chmod 644 /var/log/nlw.log
+sudo chmod 666 /var/cache/socialtext/logreader/*
+
+##################################################
+
 
 echo "DONE"

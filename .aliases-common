@@ -34,6 +34,7 @@ alias acsh='apt-cache show'
 
 alias rb='refresh-branch'
 alias fdefs='fresh-dev-env-from-scratch'
+alias rp='st-prove --state=failed,save --jobs=4'
 
 if [ -d $HOME/stbin ]; then
     for cmd in `find $HOME/stbin/ -name 'svn*'`; do
@@ -87,20 +88,21 @@ cdcrp()   { cd `abs_path $ST_CURRENT/../clients/rest/perl`; }
 cdrpt()   { cd `abs_path $ST_CURRENT/socialtext-reports`; }
 cdapp()   { cd `abs_path $ST_CURRENT/appliance`; }
 cdcon()   { cd `abs_path $ST_CURRENT/appliance/libsocialtext-appliance-perl`; }
-cdctrl()  { cd `abs_path $ST_CURRENT/control`; }
 cdskins()  { cd `abs_path $ST_CURRENT/socialtext-skins`; }
 cdplug() { cd `abs_path $ST_CURRENT/plugins`; }
 cdsc() { cd `abs_path $ST_CURRENT/plugins/socialcalc`; }
 cdscc() { cd `abs_path $ST_CURRENT/socialcalc`; }
+cdctrl()  { cd `abs_path $ST_CURRENT/plugins/control`; }
 cdppl() { cd `abs_path $ST_CURRENT/plugins/people`; }
 cdsig() { cd `abs_path $ST_CURRENT/plugins/signals`; }
 cdwid() { cd `abs_path $ST_CURRENT/plugins/widgets`; }
 cdsub() { cd `abs_path $ST_CURRENT/submodules`; }
+bob() { wget -q -O /dev/null "https://irc.socialtext.net:450/bob/$1"; }
 
 MAC_FILE="~/.nlw/etc/Socialtext/MAC.secret"
 alias muckmac="rm $MAC_FILE; echo bemucked > $MAC_FILE"
 alias accessd="cd /var/log/apache-perl/; ls"
-alias ape='myerrlogs -1e'
+alias ape='myerrlogs -1'
 alias vv='vim ~/.vimrc'
 alias tl='test-less'
 alias tlp='test-less --prove'
@@ -157,6 +159,21 @@ alias gunpulledall='gunpushed-all --st-reverse'
 alias grh='git reset --hard HEAD'
 alias grh-all='st-git-all reset --hard HEAD'
 alias grhall='st-git-all reset --hard HEAD'
+
+# use "gundo" to un-commit your last commit.  Changes will not go into your
+# index.
+#
+# use "gundo --soft" to undo the last commit, plus put the last commit back
+# into your index (adding to what you've got staged in the index).  See also:
+# "git commit --amend".
+#
+# use "gundo --hard" to blow away the last commit completely (including
+# whatever's currently staged in your index).
+alias gundo='git reset HEAD^'
+alias gundo-all='st-git-all reset HEAD^'
+alias gundoall='st-git-all reset HEAD^'
+
+alias 'last-appliance-release'='ssh apt tail -n 1 /var/www/apt/socialtext/dists/appliance-path'
 
 provelog() { NLW_APPCONFIG=syslog_level=debug prove "$@"; }
 

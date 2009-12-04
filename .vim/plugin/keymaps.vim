@@ -24,6 +24,7 @@ map \v :!vim .vimrc<CR>:so .vimrc<CR>
 map \V :!vim ~/.vimrc<CR>:so ~/.vimrc<CR>
 map \vf :!vim <cword><CR>:so <cword><CR>
 map \m ggouse Moose;<CR>use namespace::clean -except => 'meta';<CR><ESC>GO__PACKAGE__->meta->make_immutable;<ESC>
+map \P Go<CR>__END__<CR><CR>=head1 NAME<CR><CR>Socialtext::Narwhal - Creature of the Sea<CR><CR>=head1 SYNOPSIS<CR><CR>  use Socialtext::Narwhal<CR>$Narwhal->hunt<CR><CR>=head1 DESCRIPTION<CR><CR>Is like a unicorn, but real.<CR><CR>=cut
 
 map \# :s/^/# / <CR> :noh <CR>
 map \\# :s/^# // <CR> :noh <CR>

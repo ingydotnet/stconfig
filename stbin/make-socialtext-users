@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use lib "$ENV{ST_CURRENT}/nlw/lib";
+use Socialtext::People::Profile;
+use Socialtext::File qw(get_contents);;
+use Socialtext::User;
+use Socialtext::Account;
+use Socialtext::Group;
+use Socialtext::Role;
+use Socialtext::Resting::Getopt qw/get_rester rester_usage/;
+
+my $r = get_rester(); # reads @ARGV and ~/.wikeditrc
+$r->server('https://www2.socialtext.net:443');
+$r->accept('perl_hash');
+
+# Create a Socialtexters account and group
+my $account = Socialtext::Account->new( name => 'Socialtexters' )
+           || Socialtext::Account->create( name => 'Socialtexters' );
+
+$account->enable_plugin('people');
+
+my $group;
+my $all_groups = Socialtext::Group->All();
+while (my $g = $all_groups->next) {
+    $group = $g if $g->driver_group_name eq 'Socialtexters';
+}
+unless ($group) {
+    $group = Socialtext::Group->Create({
+        driver_group_name => 'Socialtexters',
+        created_by_user_id => Socialtext::User->SystemUser->user_id,
+        primary_account_id => $account->account_id,
+    });
+}
+
+
+my $me = Socialtext::User->new(username => 'devnull1@socialtext.com');
+my $prof = Socialtext::People::Profile->GetProfile($me);
+die "no profile" unless $prof;
+
+my $people = $r->get_people(fields => "first_name,last_name,email");
+for my $person (@$people) {
+    next unless $person->{last_name};
+    if ($person->{email} eq $r->username) {
+        store_details($me, $person);
+    }
+    else {
+        (my $email = $person->{email}) =~ s{\@.*}{\@ken.socialtext.net};
+        warn "Adding $email\n";
+
+        my $user = Socialtext::User->new(username => $email)
+           || Socialtext::User->create(
+                  username => $email,
+                  email_address => $email,
+                  first_name => $person->{first_name},
+                  last_name => $person->{last_name},
+                  password => 'password',
+              );
+
+        store_details($user, $person);
+        eval { $prof->modify_watchlist(watch_add => $user->user_id) };
+    }
+}
+
+sub store_details {
+    my ($user, $person) = @_;
+
+    # Add the new user to the socialtexters group and account
+    $user->primary_account($account->account_id);
+    my $role = Socialtext::Role->new(name => 'member');
+    $group->add_user(role => $role, user => $user);
+
+    # Set the profile image
+    my $p = Socialtext::People::Profile->GetProfile($user);
+    $p->first_name($person->{first_name});
+    $p->last_name($person->{last_name});
+
+    my $img = $r->get_profile_photo($person->{id});
+    $p->save_profile_image( \$img );
+    $p->save;
+}

@@ -2,12 +2,22 @@
 alias dir='ls -l'
 alias cls='clear'
 
+# ST overrides
+alias fdefs='fresh-dev-env-from-scratch -mbp'
+
 # editor/pager
 export EDITOR=vim
 export PAGER=less
 
+# my most regularly used VE
+export ST_VE_NAME=dev3
+
+# add personal "st-build-tools" checkout to @INC and $PATH
+export PERL5LIB=/home/graham/src/st/st-build-tools/lib:$PERL5LIB
+export PATH=/home/graham/src/st/st-build-tools/bin:$PATH
+
 # add personal Perl stuff to @INC and $PATH
-export PERL5LIB=/home/graham/perl/lib/perl5/`perl -MConfig -e 'print $Config{archname}'`:/home/graham/perl/share/perl/`perl -MConfig -e 'print $Config{version}'`
+export PERL5LIB=/home/graham/perl/lib/perl5/`perl -MConfig -e 'print $Config{archname}'`:/home/graham/perl/share/perl/`perl -MConfig -e 'print $Config{version}'`:$PERL5LIB
 export PATH=/home/graham/perl/bin:$PATH
 
 # colourized prompt

@@ -28,3 +28,4 @@ if [ -f $HOME/Android ]; then
     export ANDROID_SWT=$HOME/Android/sdk/tools/lib/x86
     export PATH=$HOME/Android/sdk/tools:$PATH
 fi
+export ST_VE_NAME=dev10

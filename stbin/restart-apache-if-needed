@@ -10,14 +10,16 @@ touchfile=$basedir/.lastrestart
 restartit() {
     if [ ! -f $touchfile ]; then
         touch $touchfile
-        nlwctl -1 restart
+        nlwctl -1 hup
         return
     fi
 
     mods=`find ~/src/st/socialtext/nlw/lib -follow -newer $touchfile | egrep -v '\.*\.sw[ponm]$' | head -1`
     if [ ! -z $mods ]; then
         touch $touchfile
-        nlwctl -1 restart
+        nlwctl -1 hup
+        nlwctl -e restart
+        nlwctl -p restart
     fi
 }
 
