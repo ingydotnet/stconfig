@@ -14,6 +14,8 @@ alias rc="rcontract-create"
 alias rq='stedit -w dev-tasks "Release Queue"'
 alias i=clear
 
+alias ack='ack --follow'
+
 alias ..='cd ..'
 alias ..1='cd ..'
 alias ..2='cd ../..'
