@@ -2,6 +2,13 @@
 use strict;
 use warnings;
 use utf8;
+BEGIN {
+    # NUKE all "HARNESS_*" environment vars at the onset; even if we're
+    # running under the Perl test harness, we *HAVE* to run against real live
+    # servers and DBs (so don't let ST pick up that we're under the harness
+    # and use a test one instead).
+    delete $ENV{$_} for (grep { /HARNESS/ } keys %ENV);
+}
 use Socialtext::Resting;
 use Socialtext::WikiObject::TestPlan;
 use Getopt::Long;
