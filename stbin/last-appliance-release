@@ -1,0 +1,2 @@
+#!/bin/bash
+ssh apt tail -n 1 /var/www/apt/socialtext/dists/appliance-path

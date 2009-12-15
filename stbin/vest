@@ -47,6 +47,12 @@ if ($ve_name =~ m/^qa\d$/) {
     $ve_host =~ s/^zircon/willemite/;
 }
 
+if ($repo eq 'staging') {
+    $repo = qx(last-appliance-release);
+    chomp $repo;
+    print "Repo changed to '$repo'\n";
+}
+
 if ($upgrade_to) {
     exec_on_ve( 
         qq{echo "# Dapper is commented out so we find deps from there that are not" > /etc/apt/sources.list},
