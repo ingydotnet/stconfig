@@ -3,7 +3,7 @@ alias dir='ls -l'
 alias cls='clear'
 
 # ST overrides
-alias fdefs='fresh-dev-env-from-scratch -mbp'
+alias fdefs='fresh-dev-env-from-scratch -wbmp'
 
 # editor/pager
 export EDITOR=vim
