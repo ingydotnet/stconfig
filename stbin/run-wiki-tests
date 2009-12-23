@@ -65,6 +65,8 @@ my $st_admin = qx(which st-admin);
 (my $nlw_path = $st_admin) =~ s#/bin/st-admin.+##s;
 unshift @INC, "$nlw_path/lib";
 diag "Added $nlw_path/lib to \@INC...";
+unshift @INC, "$nlw_path";
+diag "Added $nlw_path to \@INC...";
 
 if ($version) {
     my @libs = qw(
