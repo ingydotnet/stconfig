@@ -7,7 +7,7 @@ function! RunLastT()
     if (!strlen($lasttfile))
        execute '!./' . expand('%')
     else
-        !NO_TIMER_REPORT=1 prv -v $lasttfile
+        !TEST_LESS_VERBOSE=1 prv -v $lasttfile
     endif
 endf
 
