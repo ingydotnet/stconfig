@@ -69,7 +69,8 @@ sub store_details {
     # Add the new user to the socialtexters group and account
     $user->primary_account($account->account_id);
     my $role = Socialtext::Role->new(name => 'member');
-    $group->add_user(role => $role, user => $user);
+    $group->add_user(role => $role, user => $user)
+        unless $group->has_user($user);
 
     # Set the profile image
     my $p = Socialtext::People::Profile->GetProfile($user);
@@ -77,6 +78,6 @@ sub store_details {
     $p->last_name($person->{last_name});
 
     my $img = $r->get_profile_photo($person->{id});
-    $p->save_profile_image( \$img );
+    $p->photo->set( \$img );
     $p->save;
 }
