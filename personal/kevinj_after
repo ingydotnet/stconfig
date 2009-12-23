@@ -29,3 +29,4 @@ if [ -f $HOME/Android ]; then
     export PATH=$HOME/Android/sdk/tools:$PATH
 fi
 export ST_VE_NAME=dev10
+export TEST_LESS_VERBOSE=1
