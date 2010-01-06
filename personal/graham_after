@@ -12,13 +12,18 @@ export PAGER=less
 # my most regularly used VE
 export ST_VE_NAME=dev3
 
+# local::lib
+export MODULEBUILDRC="/home/graham/perl5/.modulebuildrc"
+export PERL_MM_OPT="INSTALL_BASE=/home/graham/perl5"
+export PERL5LIB="/home/graham/perl5/lib/perl5:/home/graham/perl5/lib/perl5/x86_64-linux-gnu-thread-multi:$PERL5LIB"
+export PATH="/home/graham/perl5/bin:$PATH"
+
 # add personal "st-build-tools" checkout to @INC and $PATH
 export PERL5LIB=/home/graham/src/st/st-build-tools/lib:$PERL5LIB
 export PATH=/home/graham/src/st/st-build-tools/bin:$PATH
 
-# add personal Perl stuff to @INC and $PATH
-export PERL5LIB=/home/graham/perl/lib/perl5/`perl -MConfig -e 'print $Config{archname}'`:/home/graham/perl/share/perl/`perl -MConfig -e 'print $Config{version}'`:$PERL5LIB
-export PATH=/home/graham/perl/bin:$PATH
+# add ~/bin to path
+export PATH=/home/graham/bin:$PATH
 
 # colourized prompt
 COLOR_BRANCH='\[\033[1;32m\]'
