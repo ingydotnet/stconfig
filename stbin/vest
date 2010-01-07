@@ -47,7 +47,7 @@ if ($ve_name =~ m/^qa\d$/) {
     $ve_host =~ s/^zircon/willemite/;
 }
 
-if ($repo eq 'staging') {
+if ($repo =~ m/^app(?:liance)?$/) {
     $repo = qx(last-appliance-release);
     chomp $repo;
     print "Repo changed to '$repo'\n";
