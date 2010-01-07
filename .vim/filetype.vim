@@ -44,5 +44,7 @@ augroup filetypedetect
 
     au BufNewFile,BufRead *.mxml set filetype=mxml
     au BufNewFile,BufRead *.as set filetype=actionscript
+
+    au BufRead,BufNewFile *.nginx set ft=nginx
 augroup END
 
