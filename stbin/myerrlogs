@@ -33,6 +33,9 @@ case "$1" in
     (-a)
         log="$dir/*/*.log $dir/json-proxy.log"
         ;;
+    (-n)
+        log="$dir/nginx/*.log"
+        ;;
     (*)
         log="$dir/*/nlw-error*.log $dir/json-proxy.log"
         ;;
