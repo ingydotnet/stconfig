@@ -107,25 +107,48 @@ sub print_bug_table {
         }
         print "* {bz: $bug->{bug_id}} - $bug->{name} ($bug->{points}p)\n";
         my $owner = $bug->{owner};
-        $owner = "NEEDS AN OWNER!" if $owner =~ m/bug zilla/i;
-        print "** $bug->{category} / $bug->{component} - $owner\n";
+        $owner = "*NEEDS AN OWNER!*" if $owner =~ m/bug zilla/i;
+        if ($bug->{priority}) {
+            print "** $bug->{priority}: $bug->{product} / $bug->{component} - $owner\n";
+        }
+        else {
+            print "** $bug->{product} / $bug->{component} - $owner\n";
+        }
     }
 }
 
 sub scrape_bug_table {
     my $table_name = shift;
     my $html = shift;
-    my $bugs = scraper {
-       process qq{//table[\@id="$table_name"]/tr}, 
-            'bugs[]' => scraper {
-                process '//td[1]//a', 'bug_id' => 'TEXT';
-                process '//td[1]', 'name' => 'TEXT';
-                process '//td[2]', 'priority' => 'TEXT';
-                process '//td[3]', 'category' => 'TEXT';
-                process '//td[4]', 'component' => 'TEXT';
-                process '//td[5]', 'owner' => 'TEXT';
-                process '//td[6]', 'points' => 'TEXT';
-            };
-    }->scrape($html);
+    my $bugs;
+    if ($table_name =~ m/blocker/i) {
+        $bugs = scraper {
+           process qq{//table[\@id="$table_name"]/tr}, 
+                'bugs[]' => scraper {
+                    process '//td[1]//a', 'bug_id' => 'TEXT';
+                    process '//td[1]', 'name' => 'TEXT';
+                    process '//td[2]', 'product' => 'TEXT';
+                    process '//td[3]', 'component' => 'TEXT';
+                    process '//td[4]', 'status' => 'TEXT';
+                    process '//td[5]', 'resolution' => 'TEXT';
+                    process '//td[6]', 'owner' => 'TEXT';
+                    process '//td[7]', 'points' => 'TEXT';
+                };
+        }->scrape($html);
+    }
+    else {
+        $bugs = scraper {
+           process qq{//table[\@id="$table_name"]/tr}, 
+                'bugs[]' => scraper {
+                    process '//td[1]//a', 'bug_id' => 'TEXT';
+                    process '//td[1]', 'name' => 'TEXT';
+                    process '//td[2]', 'priority' => 'TEXT';
+                    process '//td[3]', 'product' => 'TEXT';
+                    process '//td[4]', 'component' => 'TEXT';
+                    process '//td[5]', 'owner' => 'TEXT';
+                    process '//td[6]', 'points' => 'TEXT';
+                };
+        }->scrape($html);
+    }
     return [ grep { keys %$_ } @{ $bugs->{bugs} } ];
 }
