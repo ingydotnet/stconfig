@@ -34,26 +34,28 @@ fi
 USERNAME="wikitester@ken.socialtext.net"
 if [ $FRESHDEV ]; then
     $NLW_DEVBIN/fresh-dev-env-from-scratch
+
     echo Removing all ceqlotron tasks to stop unnecessary indexing
     $NLW_BIN/ceq-rm /.+/
     $NLW_DEVBIN/create-test-data-workspace
+
     echo Creating user $USERNAME
     $NLW_BIN/st-admin create-user --e $USERNAME >/dev/null 2>/dev/null || true
     $NLW_BIN/st-admin add-workspace-admin --w test-data --e $USERNAME >/dev/null 2>/dev/null || true
     $NLW_BIN/st-admin give-accounts-admin  --e $USERNAME  >/dev/null 2>/dev/null || true
     $NLW_BIN/st-admin give-system-admin  --e $USERNAME  >/dev/null 2>/dev/null || true
-    echo Populating reports DB
-    $NLW_DEVBIN/st-populate-reports-db
-    # run report populater again because that seems to be necessary for the
-    # report tests to pass
-    #$NLW_DEVBIN/st-populate-reports-db
-    
+
     echo "Building wikitests"
     $NLW_DEVBIN/wikitests-to-wiki
+
     echo "Setting benchmark mode to prevent JS make on every page load"
     echo "Use makeme after every rb to make JS once"
     $NLW_BIN/st-config set benchmark_mode 1
+
     $NLW_DEVBIN/st-socialcalc enable
+
+    echo Populating reports DB
+    $NLW_DEVBIN/st-populate-reports-db
 fi
 
 cd $ST_CURRENT
