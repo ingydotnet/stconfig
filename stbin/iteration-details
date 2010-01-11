@@ -1,0 +1,131 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Socialtext::Resting::Getopt qw/get_rester/;
+use local::lib;
+use Web::Scraper;
+use IO::All;
+
+my $must_match = shift;
+my $use_cache = 0;
+
+my $r = get_rester(
+    server => 'https://www2.socialtext.net',
+    workspace => 'dev-tasks',
+);
+
+$r->accept('perl_hash');
+my $iterations = $r->get_taggedpages('iteration');
+
+my $iter;
+if ($must_match) {
+    for my $i (@$iterations) {
+        next unless $i->{name} =~ m/\Q$must_match\E/;
+        $iter = $i;
+        last;
+    }
+    die "Could not find an iteration matching '$must_match'\n"
+        unless $iter;
+}
+else {
+    $iter = $iterations->[0];
+}
+
+my $cache_file = "/tmp/$ENV{USER}-$iter->{page_id}";
+my $iter_html;
+if ($use_cache and -e $cache_file) {
+    warn "Fetching from $cache_file ...\n";
+    $iter_html = io($cache_file)->slurp;
+}
+else {
+    $r->accept('text/html');
+    $iter_html = $r->get_page($iter->{page_id});
+    io($cache_file)->print($iter_html);
+}
+
+print "\n";
+print_iteration_bugs();
+print_iteration_stories();
+
+exit;
+
+sub print_iteration_bugs {
+    for my $type (qw/blocker dev/) {
+        my $name = ucfirst $type;
+        my $bugs = scrape_bug_table("table-agile-$type-bugs", $iter_html);
+
+        next unless @$bugs;
+        print "^^^ Open $name bugs:\n";
+        print_bug_table($bugs);
+        print "\n";
+    }
+}
+
+sub print_iteration_stories {
+    my @tables = qw(pool in-dev in-pm in-qa awaiting-signoff done);
+    for my $table (@tables) {
+        (my $name = $table) =~ s/\b(\w+)/ucfirst($1)/eg;
+        $name =~ s/-/ /;
+
+        my $stories = scrape_story_table("table-agile-$table", $iter_html);
+        next unless @$stories;
+        print "^^^ Stories in $name\n";
+        print "\n| *Story* | *Prio* | *Pts* | *Dev* | *QA* | *Customer* | *Notes* |\n";
+        for my $story (@$stories) {
+            print "| " 
+            . join(' | ', "[$story->{name}]", @$story{qw/priority points dev qa pm notes/})
+            . " |\n";
+        }
+        print "\n";
+    }
+}
+
+sub scrape_story_table {
+    my $table_name = shift;
+    my $html = shift;
+    my $bugs = scraper {
+       process qq{//table[\@id="$table_name"]/tr}, 
+            'stories[]' => scraper {
+                process '//td[2]//a', 'name' => 'TEXT';
+                process '//td[3]', 'priority' => 'TEXT';
+                process '//td[4]', 'points' => 'TEXT';
+                process '//td[5]', 'dev' => 'TEXT';
+                process '//td[6]', 'qa' => 'TEXT';
+                process '//td[7]', 'pm' => 'TEXT';
+                process '//td[10]', 'notes' => 'TEXT';
+            };
+    }->scrape($html);
+    return [ grep { keys %$_ } @{ $bugs->{stories} } ];
+}
+
+sub print_bug_table {
+    my $bugs = shift;
+    for my $bug (@$bugs) {
+        unless ($bug->{bug_id}) {
+            print "$bug->{name}\n";
+            next;
+        }
+        print "* {bz: $bug->{bug_id}} - $bug->{name} ($bug->{points}p)\n";
+        my $owner = $bug->{owner};
+        $owner = "NEEDS AN OWNER!" if $owner =~ m/bug zilla/i;
+        print "** $bug->{category} / $bug->{component} - $owner\n";
+    }
+}
+
+sub scrape_bug_table {
+    my $table_name = shift;
+    my $html = shift;
+    my $bugs = scraper {
+       process qq{//table[\@id="$table_name"]/tr}, 
+            'bugs[]' => scraper {
+                process '//td[1]//a', 'bug_id' => 'TEXT';
+                process '//td[1]', 'name' => 'TEXT';
+                process '//td[2]', 'priority' => 'TEXT';
+                process '//td[3]', 'category' => 'TEXT';
+                process '//td[4]', 'component' => 'TEXT';
+                process '//td[5]', 'owner' => 'TEXT';
+                process '//td[6]', 'points' => 'TEXT';
+            };
+    }->scrape($html);
+    return [ grep { keys %$_ } @{ $bugs->{bugs} } ];
+}
