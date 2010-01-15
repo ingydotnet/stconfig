@@ -8,6 +8,7 @@ use IO::All;
 
 my $must_match = shift;
 my $use_cache = 0;
+my $show_done = 0;
 
 my $r = get_rester(
     server => 'https://www2.socialtext.net',
@@ -62,7 +63,8 @@ sub print_iteration_bugs {
 }
 
 sub print_iteration_stories {
-    my @tables = qw(pool in-dev in-pm in-qa awaiting-signoff done);
+    my @tables = qw(pool in-dev in-pm in-qa awaiting-signoff);
+    push @tables, 'done' if $show_done;
     for my $table (@tables) {
         (my $name = $table) =~ s/\b(\w+)/ucfirst($1)/eg;
         $name =~ s/-/ /;
