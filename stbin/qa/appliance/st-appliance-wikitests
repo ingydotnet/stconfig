@@ -16,22 +16,17 @@ fi
 
 WIKITESTS="/usr/share/stconfig/stbin/qa/appliance"
 
-echo SETTING TIME
-source $WIKITESTS/set-time
-
-echo "Installing st-tap2html packages"
+echo "Installing additional packages"
 sudo apt-get install --yes libtest-harness-perl
 sudo apt-get install --yes libaccessors-perl
 sudo apt-get install --yes libtap-formatter-html-perl
-
-echo "Installing additional test dependencies"
 sudo apt-get install --yes libtest-http-perl
 
 echo INSTALLING and ENABLING all plugins for all accounts
-sudo st-appliance-install-plugin dashboard people socialcalc signals
+sudo st-appliance-install-plugin dashboard people socialcalc signals groups
 sudo st-admin enable-plugin --all-accounts --plugin dashboard
-sudo st-admin enable-plugin --all-accounts --plugin people
 sudo st-admin enable-plugin --all-accounts --plugin signals
+sudo st-admin enable-plugin --all-accounts --plugin groups
 
 echo INSTALLING wikitest_files
 if [ ! -e /opt/wikitest_files ]; then
@@ -46,6 +41,7 @@ fi
 echo "IMPORTING  test-data  WORKSPACE"
 sudo st-admin import-workspace --tarball $WIKITESTS/test-data.tar.gz
 sudo st-admin set-workspace-config --w test-data account_name $HOSTNAME || true
+sudo st-admin enable-plugin --p socialcalc --w test-data
 
 if [ -e /var/www/socialtext/data/wikitests ]; then
     echo "DELETING old wikitests workspace"
@@ -69,15 +65,6 @@ sudo st-admin give-accounts-admin --e devnull1@socialtext.com
 echo "INSTALLING slapd"
 sudo apt-get install --yes slapd
 
-echo "ENABLING Socialcalc for all workspaces"
-sudo $WIKITESTS/st-appliance-socialcalc enable
-
-echo "SETTING all skins TO s3"
-#sudo st-admin set-account-config --account Socialtext skin_name s3
-#sudo st-admin reset-account-skin --account Socialtext --skin s3
-#sudo st-admin set-account-config --account $HOSTNAME skin_name s3
-#sudo st-admin reset-account-skin --account $HOSTNAME  --skin s3
-
 # Make www-data own /etc/socialtext/ files so st-bootstrap-openldap will
 # succeed from wikitests.
 sudo chown -R www-data:www-data /etc/socialtext/
@@ -87,7 +74,6 @@ sudo chmod 666 /etc/socialtext/ldap.yaml
 sudo ln -sf $WIKITESTS/st-bootstrap-openldap /usr/bin/
 sudo ln -sf $WIKITESTS/st-appliance-socialcalc /usr/bin/
 sudo ln -sf $WIKITESTS/st-appliance-wikitests  /usr/bin/
-
 sudo ln -sf $WIKITESTS/st-consume-stub-reports /usr/bin/
 sudo ln -sf $WIKITESTS/st-qa-growth-report-add-members /usr/bin/
 sudo ln -sf $WIKITESTS/st-create-account-data /usr/bin/
@@ -96,6 +82,7 @@ sudo ln -sf $WIKITESTS/st-populate-reports-db /usr/bin/
 
 echo "POPULATING reports DB"
 sudo st-populate-reports-db
+
 sudo st-appliance-config set max_objects_for_control_panel 500
 sudo st-appliance-config get max_objects_for_control_panel
 
@@ -103,14 +90,14 @@ echo "Setting up /tmp/backup for Console Backup and Restore testing"
 sudo mkdir -p /tmp/backup
 sudo perl -pi -e "s#^local_archivedir: .+#local_archivedir: /tmp/backup#" /etc/socialtext/appliance.conf
 
-##################################################
-
 echo "Preparing nlw log consumer"
 sudo ln -sf /usr/bin/st-reports-consume-nlw-log /usr/sbin/st-appliance-reports-consume-nlw-log
 sudo chmod 644 /var/log/nlw.log
 sudo chmod 666 /var/cache/socialtext/logreader/*
 
-##################################################
-
+echo "Enabling email"
+sudo perl -pi -e "s/dc_eximconfig_configtype='local'/dc_eximconfig_configtype='internet'/" /etc/exim4/update-exim4.conf.conf
+sudo update-exim4.conf
+sudo /etc/init.d/exim4 restart
 
 echo "DONE"
