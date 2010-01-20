@@ -79,6 +79,7 @@ sudo ln -sf $WIKITESTS/st-qa-growth-report-add-members /usr/bin/
 sudo ln -sf $WIKITESTS/st-create-account-data /usr/bin/
 sudo ln -sf $WIKITESTS/st-qa-growth-report-populate-db /usr/bin/
 sudo ln -sf $WIKITESTS/st-populate-reports-db /usr/bin/
+sudo ln -sf $WIKITESTS/reports-functions.pl /usr/bin/
 
 echo "POPULATING reports DB"
 sudo st-populate-reports-db
