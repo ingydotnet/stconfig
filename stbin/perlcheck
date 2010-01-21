@@ -5,6 +5,8 @@ use strict;
 use Error ':try';
 use Cwd qw/abs_path/;
 
+$ENV{PERLCHECK} = 1;
+
 sub usage {
     print <<END_OF_USAGE; exit 0;
 Usage: perlcheck [PERL OPTIONS] FILE [...]
