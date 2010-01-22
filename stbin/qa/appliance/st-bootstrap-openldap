@@ -410,6 +410,7 @@ mail: phil@socialtext.com
 gn: Phil
 sn: Taylor
 cn: Phil Taylor
+userPassword: ld@pu53r
 
 dn: cn=Eddie Clarke,dc=socialtext,dc=com
 objectClass: inetOrgPerson
@@ -417,6 +418,7 @@ mail: eddie@socialtext.com
 gn: Eddie
 sn: Clarke
 cn: Eddie Clarke
+userPassword: ld@pu53r
 
 dn: cn=Hawkwind,dc=socialtext,dc=com
 objectClass: groupOfNames
@@ -430,3 +432,4 @@ mail: michael@socialtext.com
 gn: Michael
 sn: Moorcock
 cn: Michael Moorcock
+userPassword: ld@pu53r
