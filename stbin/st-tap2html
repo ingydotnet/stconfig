@@ -44,8 +44,11 @@ summary view and links to those detailed test pages.
 =over 4
 
 =item * Red/green display (that's what the existing tap2html does, slightly ugly)
+
 =item * Cope with not only "not ok" but also "Failure during ...".
+
 =item * Click on display to open corresponding section of TAP output file.
+
 =item * Capture the STDERR output in individual section logs.
 
 =back
