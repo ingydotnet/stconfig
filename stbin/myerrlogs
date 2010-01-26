@@ -37,7 +37,7 @@ case "$1" in
         log="$dir/nginx/*.log"
         ;;
     (*)
-        log="$dir/*/nlw-error*.log $dir/json-proxy.log"
+        log="$dir/*/nlw-error*.log $dir/json-proxy.log $dir/nginx/error.log"
         ;;
 esac
 
