@@ -124,6 +124,8 @@ alias dtedit='stedit -w dev-tasks'
 # wikrad aliases
 alias dgrad='w2rad -w dev-guide'
 alias dtrad='w2rad -w dev-tasks'
+alias kanban='dtrad "kanban"'
+alias kb='dtrad "kanban"'
 alias iterad='dtrad -l "current iteration"'
 alias convrad='w2rad -w conversation'
 alias stprad='w2rad -w socialpedia'
