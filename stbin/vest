@@ -17,7 +17,7 @@ my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
 my ($test_data, $test_data_only, $staging_db, $staging_db_only,
-    $staging_reports_db, $staging_reports_db_only,
+    $staging_reports_db, $staging_reports_db_only, $signals,
 );
 
 GetOptions(
@@ -29,6 +29,7 @@ GetOptions(
     't|test-data' => \$test_data,
     'a|arch=s' => \$arch,
     'w|wipe' => \$wipe_it,
+    'signals' => \$signals,
     'test-data-only' => \$test_data_only,
     'staging-db' => \$staging_db,
     'staging-db-only' => \$staging_db_only,
@@ -75,12 +76,14 @@ else {
         };
         warn $@ if $@;
     }
+    my $setup_args = "--arch $arch --ve $ve_name --repo $repo";
+    $setup_args .= " --signals" if $signals;
     eval {
         die "cannot rebuild when wiping\n" if $wipe_it;
-        shell_run(qq{$ssh "sudo setup-qa-ve rebuild --arch $arch --ve $ve_name --repo $repo"});
+        shell_run(qq{$ssh "sudo setup-qa-ve rebuild $setup_args"});
     };
     if ($@) {
-        shell_run(qq{$ssh "sudo setup-qa-ve create --arch $arch --ve $ve_name --repo $repo"});
+        shell_run(qq{$ssh "sudo setup-qa-ve create $setup_args"});
     }
 
     # Runs as root on the VE
