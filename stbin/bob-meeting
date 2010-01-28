@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my $minutes = shift;
+die "USAGE: $0 <minutes>\n" unless $minutes;
+
+my $user = $ENV{USER};
+bob("$user is Starting a meeting $minutes minutes long");
+while ($minutes > 0) {
+    if (($minutes % 5) == 0) {
+        bob("$minutes minutes left in meeting. ($user)");
+    }
+    sleep 60;
+    $minutes--;
+}
+bob("Meeting has reached alloted time. ($user)");
+exit;
+
+sub bob {
+    my $msg = shift;
+    system(qq{wget -q -O /dev/null "https://irc.socialtext.net:450/bob/$msg"});
+}
+
