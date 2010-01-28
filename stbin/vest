@@ -47,6 +47,9 @@ usage('ve-name is mandatory!') unless $ve_name;
 if ($ve_name =~ m/^qa\d$/) {
     $ve_host =~ s/^zircon/willemite/;
 }
+if ($ve_name eq 'dev11') {
+    $ve_host =~ s/^zircon/xenotime/;
+}
 
 if ($repo =~ m/^app(?:liance)?$/) {
     $repo = qx(last-appliance-release);
