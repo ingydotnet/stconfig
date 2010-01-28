@@ -10,7 +10,7 @@ my $r = get_rester(
 );
 
 $r->accept('text/plain');
-my @in_dev = $r->get_taggedpages('In Dev');
+my @in_dev = $r->get_taggedpages('InDev');
 
 my @stories_in_dev_by_me;
 my @stories_and_devs;
