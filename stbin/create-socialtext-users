@@ -43,7 +43,7 @@ my $people = $r->get_people(fields => "first_name,last_name,email");
 for my $person (@$people) {
     next unless $person->{last_name};
     if ($person->{email} eq $r->username) {
-        store_details($me, $person);
+        store_details($me, $person, 'admin');
     }
     else {
         (my $email = $person->{email}) =~ s{\@.*}{\@ken.socialtext.net};
@@ -64,11 +64,12 @@ for my $person (@$people) {
 }
 
 sub store_details {
-    my ($user, $person) = @_;
+    my ($user, $person, $rolename) = @_;
+    $rolename ||= 'member';
 
     # Add the new user to the socialtexters group and account
     $user->primary_account($account->account_id);
-    my $role = Socialtext::Role->new(name => 'member');
+    my $role = Socialtext::Role->new(name => $rolename);
     $group->add_user(role => $role, user => $user)
         unless $group->has_user($user);
 
