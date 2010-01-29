@@ -4,7 +4,8 @@ use warnings;
 
 my $minutes = shift;
 my $subject = shift || 'meeting';
-die "USAGE: $0 <minutes> <subject>\n" unless $minutes;
+die "USAGE: $0 <minutes> <subject>\n"
+    unless $minutes and $minutes =~ m/^\d+$/;
 
 my $user = $ENV{USER};
 bob("$user is Starting a $subject $minutes minutes long");
