@@ -3,18 +3,19 @@ use strict;
 use warnings;
 
 my $minutes = shift;
-die "USAGE: $0 <minutes>\n" unless $minutes;
+my $subject = shift || 'meeting';
+die "USAGE: $0 <minutes> <subject>\n" unless $minutes;
 
 my $user = $ENV{USER};
-bob("$user is Starting a meeting $minutes minutes long");
+bob("$user is Starting a $subject $minutes minutes long");
 while ($minutes > 0) {
     if (($minutes % 5) == 0) {
-        bob("$minutes minutes left in meeting. ($user)");
+        bob("$minutes minutes left in $subject. ($user)");
     }
     sleep 60;
     $minutes--;
 }
-bob("Meeting has reached alloted time. ($user)");
+bob("Alert! $subject has reached alloted time. ($user)");
 exit;
 
 sub bob {
