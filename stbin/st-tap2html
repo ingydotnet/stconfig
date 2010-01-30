@@ -95,6 +95,10 @@ while (<>) {
     elsif (/Loading test plan (.*)\.\.\./i) {
         $suffix = " ($1)";
     }
+    elsif (/^# Looks like your test died just after \d/) {
+        $c++;
+        print FH "not ok $c - $_";
+    }
     else {
         my $changed;
         $changed++ if s/^(1\.\.\d+)$/# $1/;
