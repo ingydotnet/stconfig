@@ -29,7 +29,12 @@ fi
 
 export PROMPT_COMMAND=_git_prompt_color
 
-export PATH="$PATH:/sw/bin:/usr/local/git/bin"
+if [ `perl -le 'print $^O'` == 'darwin' ]; then
+    export PATH="${HOME}/local/bin:$PATH:/sw/bin:/usr/local/git/bin:/Users/lukec/src/android-sdk-mac/tools"
+else
+    export PATH="$PATH:/sw/bin:/usr/local/git/bin"
+fi
+
 export MANPATH="$MANPATH:/usr/local/git/man"
 eval $(perl -I$HOME/perl5/lib/perl5 -Mlocal::lib)
 
