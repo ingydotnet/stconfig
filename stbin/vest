@@ -37,13 +37,6 @@ GetOptions(
     'staging-reports-db-only' => \$staging_reports_db_only,
 ) or usage ();
 
-if ($test_data_only)  { install_test_data();  exit 0 }
-if ($staging_db_only) { install_staging_db(); exit 0 }
-if ($staging_reports_db_only) { install_staging_reports_db(); exit 0 }
-
-usage('repo or upgrade-to is mandatory!') unless $repo or $upgrade_to;
-usage('ve-name is mandatory!') unless $ve_name;
-
 if ($ve_name =~ m/^qa\d$/) {
     $ve_host =~ s/^zircon/willemite/;
 }
@@ -51,11 +44,18 @@ if ($ve_name eq 'dev11') {
     $ve_host =~ s/^zircon/xenotime/;
 }
 
-if ($repo =~ m/^app(?:liance)?$/) {
+if ($repo and $repo =~ m/^app(?:liance)?$/) {
     $repo = qx(last-appliance-release);
     chomp $repo;
     print "Repo changed to '$repo'\n";
 }
+
+if ($test_data_only)  { install_test_data();  exit 0 }
+if ($staging_db_only) { install_staging_db(); exit 0 }
+if ($staging_reports_db_only) { install_staging_reports_db(); exit 0 }
+
+usage('repo or upgrade-to is mandatory!') unless $repo or $upgrade_to;
+usage('ve-name is mandatory!') unless $ve_name;
 
 if ($upgrade_to) {
     exec_on_ve( 
