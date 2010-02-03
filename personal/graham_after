@@ -33,3 +33,7 @@ PROMPT_COMMAND=_git_prompt_color
 
 # so dh_make_perl knows who I am
 EMAIL='Graham TerMarsch <graham.termarsch@socialtext.com>'
+
+# more bash history please
+export HISTFILESIZE=100000
+export HISTSIZE=$HISTFILESIZE
