@@ -2,6 +2,8 @@
 
 # functions and aliases for dev env and appliance
 
+    alias releaseme="export ST_APT=apt.socialtext.net"
+    alias unreleaseme="export ST_APT=dev-apt.socialtext.net"
     alias benchme="st-config set benchmark_mode 1"
     alias grnok="grep  -C 6 'not ok' testcases.out"
     alias grnokk="grep 'not ok' testcases.out"
