@@ -9,10 +9,10 @@ my $test_script = $ENV{ST_TEST_SCRIPT} || '/usr/share/stconfig/stbin/qa/applianc
 my $ve_host = $ENV{ST_VE_HOST} || 'zircon.socialtext.net';
 my $ve_name = $ENV{ST_VE_NAME};
 my $test_case;
-my $repo;
+my $repo = 'appliance';
 my $upgrade_to;
 my $plugins;
-my $apt_server = $ENV{ST_APT} || 'https://apt.socialtext.net';
+my $apt_server = $ENV{ST_APT} || 'http://dev-apt.socialtext.net';
 my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
@@ -58,20 +58,35 @@ usage('repo or upgrade-to is mandatory!') unless $repo or $upgrade_to;
 usage('ve-name is mandatory!') unless $ve_name;
 
 if ($upgrade_to) {
-    exec_on_ve( 
+    warn "USING $apt_server to upgrade (set ST_APT env var to change this)\n";
+    my @apt_setup = (
+        # use apt no matter what for certain deps
         qq{echo "# Dapper is commented out so we find deps from there that are not" > /etc/apt/sources.list},
         qq{echo "# yet copied into our deps/release repos for DHS." > /etc/apt/sources.list},
-        qq{echo "# deb $apt_server/ubuntu dapper main universe" > /etc/apt/sources.list},
-        qq{echo "deb $apt_server/ubuntu dapper-security main universe" >> /etc/apt/sources.list},
-        qq{echo "deb $apt_server/socialtext stqa main alien" >> /etc/apt/sources.list},
-        qq{echo "deb $apt_server/socialtext ops main alien" >> /etc/apt/sources.list},
+        qq{echo "# deb https://apt.socialtext.net/ubuntu dapper main universe" > /etc/apt/sources.list},
+        qq{echo "deb https://apt.socialtext.net/ubuntu dapper-security main universe" >> /etc/apt/sources.list},
+        qq{echo "deb https://apt.socialtext.net/socialtext stqa main alien" >> /etc/apt/sources.list},
+        qq{echo "deb https://apt.socialtext.net/socialtext ops main alien" >> /etc/apt/sources.list},
+        # main repo is up for change:
         qq{echo "deb $apt_server/socialtext $upgrade_to main alien" >> /etc/apt/sources.list},
+        # don't follow the path; just use sources.list:
         qq{perl -pi -e "s/upgrade_path: \\w+/upgrade_path: no-such-path/" }
           . '/etc/socialtext/appliance.conf',
+    );
+    if ($apt_server =~ /dev-apt/) {
+        # dev-apt uses a different signing key; upload and trust it.
+        push @apt_setup,
+            qq{wget -q -O /tmp/pubring.gpg $apt_server/socialtext/pubring.gpg},
+            qq{sudo apt-key add /tmp/pubring.gpg},
+            qq{rm /tmp/pubring.gpg};
+    }
+    exec_on_ve( 
+        @apt_setup,
         'st-appliance-update',
     );
 }
 else {
+    warn "USING apt.socialtext.net for fresh install; johnt is working on suporting dev-apt\n";
     my $ssh = "ssh $ve_host";
     if ($wipe_it) {
         eval {
