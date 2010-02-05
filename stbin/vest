@@ -65,8 +65,9 @@ if ($upgrade_to) {
         qq{echo "# yet copied into our deps/release repos for DHS." > /etc/apt/sources.list},
         qq{echo "# deb https://apt.socialtext.net/ubuntu dapper main universe" > /etc/apt/sources.list},
         qq{echo "deb https://apt.socialtext.net/ubuntu dapper-security main universe" >> /etc/apt/sources.list},
-        qq{echo "deb https://apt.socialtext.net/socialtext stqa main alien" >> /etc/apt/sources.list},
         qq{echo "deb https://apt.socialtext.net/socialtext ops main alien" >> /etc/apt/sources.list},
+        # stdev and stqa always live on dev-apt
+        qq{echo "deb http://dev-apt.socialtext.net/socialtext stqa main alien" >> /etc/apt/sources.list},
         # main repo is up for change:
         qq{echo "deb $apt_server/socialtext $upgrade_to main alien" >> /etc/apt/sources.list},
         # don't follow the path; just use sources.list:
