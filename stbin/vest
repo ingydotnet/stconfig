@@ -12,7 +12,7 @@ my $test_case;
 my $repo = 'appliance';
 my $upgrade_to;
 my $plugins;
-my $apt_server = $ENV{ST_APT} || 'http://dev-apt.socialtext.net';
+my $apt_server = $ENV{ST_APT} || 'dev-apt.socialtext.net';
 my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
@@ -50,6 +50,8 @@ if ($repo and $repo =~ m/^app(?:liance)?$/) {
     print "Repo changed to '$repo'\n";
 }
 
+$apt_server =~ s#^https?://##;
+
 if ($test_data_only)  { install_test_data();  exit 0 }
 if ($staging_db_only) { install_staging_db(); exit 0 }
 if ($staging_reports_db_only) { install_staging_reports_db(); exit 0 }
@@ -59,6 +61,7 @@ usage('ve-name is mandatory!') unless $ve_name;
 
 if ($upgrade_to) {
     warn "USING $apt_server to upgrade (set ST_APT env var to change this)\n";
+    my $proto = ($apt_server =~ /dev-apt/) ? 'http:' : 'https:';
     my @apt_setup = (
         # use apt no matter what for certain deps
         qq{echo "# Dapper is commented out so we find deps from there that are not" > /etc/apt/sources.list},
@@ -69,7 +72,7 @@ if ($upgrade_to) {
         # stdev and stqa always live on dev-apt
         qq{echo "deb http://dev-apt.socialtext.net/socialtext stqa main alien" >> /etc/apt/sources.list},
         # main repo is up for change:
-        qq{echo "deb $apt_server/socialtext $upgrade_to main alien" >> /etc/apt/sources.list},
+        qq{echo "deb $proto//$apt_server/socialtext $upgrade_to main alien" >> /etc/apt/sources.list},
         # don't follow the path; just use sources.list:
         qq{perl -pi -e "s/upgrade_path: \\w+/upgrade_path: no-such-path/" }
           . '/etc/socialtext/appliance.conf',
