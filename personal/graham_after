@@ -4,6 +4,7 @@ alias cls='clear'
 
 # ST overrides
 alias fdefs='fresh-dev-env-from-scratch -wbmp'
+alias gunpushed='gunpushed --pretty=oneline'
 
 # editor/pager
 export EDITOR=vim
