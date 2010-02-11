@@ -5,78 +5,154 @@ use Socialtext::Resting::Getopt qw/get_rester/;
 use DateTime;
 use Data::Dumper;
 
+$| = 1;
+
 my $r = get_rester(workspace => 'dev-tasks');
 my $tag = shift || 'allyourbase' or die <<EOT;
 USAGE: $0 <release>
 EOT
-my $page = shift;
+my $report_page = shift;
 my $DEBUG = 0;
 
 sub say ($);
 
-my %state_tags = map { $_ => 1 } 
-    qw/ProductManagementPool InPrep Ready InDev InQA AwaitingSignoff/;
+my @state_order = qw/productmanagementpool inprep ready indev inqa awaitingsignoff/;
+my %state_tags = (
+    productmanagementpool => 'p',
+    inprep => 'P',
+    ready => 'R',
+    indev => 'D',
+    inqa => 'Q',
+    awaitingsignoff => 'S',
+);
+
 $r->accept('perl_hash');
-my $stories = $r->get_taggedpages($tag);
 
-for my $story (@$stories) {
-    warn Dumper $story if $DEBUG;
-    my %story_tags = map { lc($_) => 1 } @{ $story->{tags} };
-    next unless $story_tags{story};
+my @stories;
+for my $story (@{ $r->get_taggedpages($tag) }) {
+    $story->{tags} = { map { lc($_) => 1 } @{ $story->{tags} } };
+    next unless $story->{tags}{story};
 
-    say "[$story->{name}]";
-    my $revisions = $r->get_revisions($story->{page_id});
-    my %story_state;
-    for my $rev (@$revisions) {
-        my %rev_tags = map { $_ => 1 } @{ $rev->{tags} };
-        my $rev_ts = revision_id_to_datetime($rev->{revision_id});
-        for my $tag (keys %rev_tags) {
+    print "$story->{name}: ";
+    $story->{revisions} = $r->get_revisions($story->{page_id});
+    my %state;
+    for my $rev (@{ $story->{revisions} } ) {
+        print '.';
+        $rev->{tags} = { map { lc($_) => 1 } @{ $rev->{tags} } };
+        my $rev_ts = $rev->{dt} = revision_id_to_datetime($rev->{revision_id});
+
+        # Look through all the keys in this revision to see if they put us in
+        # a new state.
+        for my $tag (keys %{ $rev->{tags} }) {
+            next unless $state_tags{$tag}; # the tag is a valid Kanban State Name
+            next if $state{$tag}{start}; # the state has been started
+            $state{$tag}{start} = $rev_ts;
+            print '+' . $state_tags{$tag};
+            $state{last_started_state} = $tag;
+        }
+
+        # Now look through all the tags we already had to see if any aren't in
+        # the current revision, indicating we've left state.
+        for my $tag (keys %state) {
+            next if $rev->{tags}{$tag}; # tag is still there
             next unless $state_tags{$tag};
-            if (not defined $story_state{$tag}) {
-                $story_state{$tag}{first_start} = $rev_ts;
-                $story_state{$tag}{start} = $rev_ts;
-                warn "      first $tag - $rev_ts\n" if $DEBUG;
-            }
-            elsif ($story_state{$tag}{done}) {
-                $story_state{$tag}{start} = $rev_ts;
-                delete $story_state{$tag}{done};
-                warn "      again $tag - $rev_ts\n" if $DEBUG;
+            next unless defined $state{$tag}{start}; # 
+            my $l = $state{$tag}{last} = {
+                started_at => $state{$tag}{start},
+                finished_at => $rev_ts,
+            };
+            push @{ $state{$tag}{finishes} }, $l;
+            $state{$tag}{first_start} ||= delete $state{$tag}{start};
+            print '-' . $state_tags{$tag};
+        }
+    }
+
+    # See what the current cumulative state is
+    $state{current} = [];
+    for my $tag (keys %state) {
+        next unless $state_tags{$tag};
+        next if $state{$tag}{done};
+        push @{ $state{current} }, $tag;
+        my $started_at = $state{$tag}{start} || $state{$tag}{first_start}
+            or die "Started_at is undef!";
+        my $l = $state{$tag}{last} = {
+            started_at => $started_at,
+            finished_at => DateTime->now,
+        };
+        push @{ $state{$tag}{finishes} }, $l;
+    }
+
+    # Look for any stories that are "done done", and then calculate stats
+    # about how long each phase took
+    if (my $done = $state{awaitingsignoff}{last}) {
+        my $done_ts = $done->{finished_at};
+        # story is "finished"
+        for my $tag (keys %state_tags) {
+            next if $tag eq 'awaitingsignoff';
+            if (my $start_ts = $state{$tag}{first_start}) {
+                $state{summary}{$tag} = {
+                    start => $start_ts,
+                    done_done => $done_ts,
+                };
             }
             else {
-                warn "      still in $tag - $rev_ts\n" if $DEBUG;
+                $state{summary}{$tag} = { skipped => 1 };
             }
         }
-        for my $tag (keys %story_state) {
-            next if $rev_tags{$tag};
-            next if $story_state{$tag}{done};
-            $story_state{$tag}{done} = $rev_ts;
-            my $start_ts = $story_state{$tag}{start};
-            my $duration = duration_to_string($start_ts, $rev_ts);
-            say "** $tag finished in $duration";
-        }
-#        warn Dumper $rev;
     }
-
-    for my $tag (keys %story_state) {
-        next if $story_state{$tag}{done};
-        my $duration = duration_to_string($story_state{$tag}{start} => DateTime->now);
-        say "* Currently in $tag for $duration";
-    }
-    if (my $done_ts = $story_state{'AwaitingSignoff'}{done}) {
-        # story is "finished"
-        for my $tag (qw/InPrep Ready InDev/) {
-            my $start_ts = $story_state{$tag}{first_start};
-            next unless defined $start_ts;
-            my $d = duration_to_string($start_ts, $done_ts);
-            say "* Took $d from $tag";
-        }
-    }
-    say "";
+    $story->{state} = \%state;
+    push @stories, $story;
+    print "\n";
 }
 
-if ($page) {
-    print "\nUploading to '$page'\n";
-    $r->put_page($page, page_content());
+
+say "Metrics for stories tagged: $tag\n";
+
+if (my @current_stories = grep { !defined $_->{state}{summary} } @stories) {
+    say "^^ Current Stories\n";
+    say '| *Story* | ' . join(' | ', map { "*$_*" } @state_order) . " |";
+    for my $s (@current_stories) {
+        my $line = "| [$s->{name}] |";
+        for my $tag (@state_order) {
+            my $last = $s->{state}{$tag}{last};
+            my $bold = $s->{state}{last_started_state} eq $tag ? '*' : '';
+            if ($last) {
+                my $duration = duration_to_string($last->{started_at}, $last->{finished_at});
+                $line .= " $bold$duration$bold |"
+            }
+            else {
+                $line .= " |";
+            }
+        }
+        say $line;
+    }
+    say '';
+}
+
+if (my @done_stories = grep { $_->{state}{summary} } @stories) {
+    say "^^ Done Stories\n";
+    say '| *Story* | ' . join(' | ', map { "*$_*" } @state_order) . " |";
+    for my $s (@done_stories) {
+        my $line = "| [$s->{name}] |";
+        my $summary = $s->{state}{summary};
+        for my $tag (@state_order) {
+            my $tag_state = $summary->{$tag};
+            if ($tag_state->{done_done}) {
+                my $d = duration_to_string($tag_state->{start}, $tag_state->{done_done});
+                $line .= " $d |"
+            }
+            else {
+                $line .= " |";
+            }
+        }
+        say $line;
+    }
+    say '';
+}
+
+if ($report_page) {
+    print "Putting " . $r->server . '/' . $r->workspace . "/?$report_page ...\n";
+    $r->put_page($report_page, page_content());
 }
 
 exit;
@@ -122,7 +198,7 @@ sub duration_to_string {
     sub say ($) {
         my $msg = shift;
         print "$msg\n";
-        if ($page) {
+        if ($report_page) {
             $page_content ||= "This page is auto-generated.  Comments and changes will be lost.\n\n";
             $page_content .= "$msg\n";
         }
