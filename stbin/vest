@@ -80,7 +80,7 @@ if ($upgrade_to) {
     if ($apt_server =~ /dev-apt/) {
         # dev-apt uses a different signing key; upload and trust it.
         push @apt_setup,
-            qq{wget -q -O /tmp/pubring.gpg $apt_server/socialtext/pubring.gpg},
+            qq{wget -q -O /tmp/pubring.gpg $apt_server/pubring.gpg},
             qq{sudo apt-key add /tmp/pubring.gpg},
             qq{rm /tmp/pubring.gpg};
     }
