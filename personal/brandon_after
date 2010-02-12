@@ -12,3 +12,5 @@ $HOSTNAME=$( hostname )
 keychain $HOME/.ssh/id_dsa
 source $HOME/.keychain/${HOSTNAME}-sh
 
+# Aliases
+alias test-wiki='st-prove --state=save --jobs=4'
