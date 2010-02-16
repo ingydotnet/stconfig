@@ -1,3 +1,9 @@
+stconfig (20100216-1266352962) socialtext; urgency=low
+
+  * new upstream version
+
+ -- Audrey Tang <audrey.tang@socialtext.com>  Tue, 16 Feb 2010 12:42:42 -0800
+
 stconfig (20100120-1264009505) socialtext; urgency=low
 
   * new upstream version
