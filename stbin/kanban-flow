@@ -49,6 +49,7 @@ for my $story (@{ $r->get_taggedpages($tag) }) {
             $state{$tag}{start} = $rev_ts;
             print '+' . $state_tags{$tag};
             $state{last_started_state} = $tag;
+            $state{first_entered_kanban} ||= $rev_ts;
         }
 
         # Now look through all the tags we already had to see if any aren't in
@@ -69,26 +70,27 @@ for my $story (@{ $r->get_taggedpages($tag) }) {
 
     # See what the current cumulative state is
     $state{current} = [];
-    for my $tag (keys %state) {
-        next unless $state_tags{$tag};
+    for my $tag (@state_order) {
+        next unless exists $state{$tag};
         next if $state{$tag}{done};
         push @{ $state{current} }, $tag;
         my $started_at = $state{$tag}{start} || $state{$tag}{first_start}
-            or die "Started_at is undef!";
+            or die "Started_at is undef! ($tag)";
         my $l = $state{$tag}{last} = {
             started_at => $started_at,
             finished_at => DateTime->now,
         };
         push @{ $state{$tag}{finishes} }, $l;
+        $state{left_kanban} = $l->{finished_at};
     }
 
     # Look for any stories that are "done done", and then calculate stats
     # about how long each phase took
     if (my $done = $state{awaitingsignoff}{last}) {
         my $done_ts = $done->{finished_at};
+        $state{left_kanban} = $done_ts;
         # story is "finished"
-        for my $tag (keys %state_tags) {
-            next if $tag eq 'awaitingsignoff';
+        for my $tag (@state_order) {
             if (my $start_ts = $state{$tag}{first_start}) {
                 $state{summary}{$tag} = {
                     start => $start_ts,
@@ -110,7 +112,7 @@ say "Metrics for stories tagged: $tag\n";
 
 if (my @current_stories = grep { !defined $_->{state}{summary} } @stories) {
     say "^^ Current Stories\n";
-    say '| *Story* | ' . join(' | ', map { "*$_*" } @state_order) . " |";
+    say "| *Story* | *PMPool* | *InPrep* | *Ready* | *Dev* | *QA* | *Signoff* | *Total* |";
     for my $s (@current_stories) {
         my $line = "| [$s->{name}] |";
         for my $tag (@state_order) {
@@ -124,6 +126,8 @@ if (my @current_stories = grep { !defined $_->{state}{summary} } @stories) {
                 $line .= " |";
             }
         }
+        my $total = duration_to_string($s->{state}{first_entered_kanban} => $s->{state}{left_kanban});
+        $line .= " $total |";
         say $line;
     }
     say '';
@@ -131,7 +135,7 @@ if (my @current_stories = grep { !defined $_->{state}{summary} } @stories) {
 
 if (my @done_stories = grep { $_->{state}{summary} } @stories) {
     say "^^ Done Stories\n";
-    say '| *Story* | ' . join(' | ', map { "*$_*" } @state_order) . " |";
+    say "| *Story* | *PMPool* | *InPrep* | *Ready* | *Dev* | *QA* | *Signoff* | *Total* |";
     for my $s (@done_stories) {
         my $line = "| [$s->{name}] |";
         my $summary = $s->{state}{summary};
@@ -145,6 +149,8 @@ if (my @done_stories = grep { $_->{state}{summary} } @stories) {
                 $line .= " |";
             }
         }
+        my $total = duration_to_string($s->{state}{first_entered_kanban} => $s->{state}{left_kanban});
+        $line .= " $total |";
         say $line;
     }
     say '';
