@@ -49,6 +49,10 @@ if ($repo and $repo =~ m/^app(?:liance)?$/) {
     chomp $repo;
     print "Repo changed to '$repo'\n";
 }
+if ($repo and $repo =~ m/^release-*/ and !$ENV{ST_APT}) {
+    $apt_server = 'apt.socialtext.net';
+    print "Using $apt_server ...\n";
+}
 
 $apt_server =~ s#^https?://##;
 
