@@ -1,0 +1,5 @@
+#!/usr/bin/perl
+my $pm = join '/', split(/\W+/, shift);
+for (map { "$_/$pm.pm" } @INC) {
+    -f and exec(vim => $_);
+}
