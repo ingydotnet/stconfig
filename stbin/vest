@@ -44,7 +44,7 @@ if ($ve_name eq 'dev11') {
     $ve_host =~ s/^zircon/xenotime/;
 }
 
-if ($repo and $repo =~ m/^app(?:liance)?$/) {
+if (!$upgrade_to and $repo and $repo =~ m/^app(?:liance)?$/) {
     $repo = qx(last-appliance-release);
     chomp $repo;
     print "Repo changed to '$repo'\n";
