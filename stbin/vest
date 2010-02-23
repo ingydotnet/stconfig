@@ -94,7 +94,7 @@ if ($upgrade_to) {
     );
 }
 else {
-    warn "USING apt.socialtext.net for fresh install; johnt is working on suporting dev-apt\n";
+    warn "Using apt server: $apt_server\n";
     my $ssh = "ssh $ve_host";
     if ($wipe_it) {
         eval {
@@ -102,7 +102,7 @@ else {
         };
         warn $@ if $@;
     }
-    my $setup_args = "--arch $arch --ve $ve_name --repo $repo";
+    my $setup_args = "--arch $arch --ve $ve_name --repo $repo --server $apt_server";
     $setup_args .= " --signals" if $signals;
     eval {
         die "cannot rebuild when wiping\n" if $wipe_it;
