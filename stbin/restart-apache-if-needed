@@ -18,8 +18,7 @@ restartit() {
     if [ ! -z $mods ]; then
         touch $touchfile
         nlwctl -1 hup
-        nlwctl -e restart
-        nlwctl -p restart
+        nlwctl -p -u restart
     fi
 }
 
