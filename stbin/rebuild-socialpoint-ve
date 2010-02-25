@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# rebuild-socialpoint-ve
+#
+# Builds a VE as a Socialpoint dev environment, populating it with data from
+# the "demo" wikiQtest.
+#
+###############################################################################
+
+set -x
+run_sudo_on_ve() {
+    ssh $ST_VE_NAME sudo "$@"
+}
+
+# Make sure we know which VE to build it on
+if [ "X$ST_VE_NAME" == "X" ]; then
+    echo "#"
+    echo "# Set ST_VE_NAME in your environment, to set the VE to build"
+    echo "# as the Socialpoint VE"
+    echo "#"
+    exit
+fi
+
+# Bootstrap the VE to "master"
+vest -v $ST_VE_NAME -r $(last-appliance-release)
+run_sudo_on_ve ceqlotron -f -o
+
+vest -v $ST_VE_NAME -u master
+run_sudo_on_ve ceqlotron -f -o
+set -e
+
+# Add our test deps to the VE
+echo "# Extra repos we need for our testing tools"                   | run_sudo_on_ve tee -a /etc/apt/sources.list
+echo "deb https://apt.socialtext.net/ubuntu dapper main universe"    | run_sudo_on_ve tee -a /etc/apt/sources.list
+echo "deb https://apt.socialtext.net/socialtext deps main alien"     | run_sudo_on_ve tee -a /etc/apt/sources.list
+echo "deb http://dev-apt.socialtext.net/socialtext stdev main alien" | run_sudo_on_ve tee -a /etc/apt/sources.list
+run_sudo_on_ve apt-get update
+run_sudo_on_ve apt-get install -y st-perl-test-deps
+run_sudo_on_ve unzip -d /opt/wikitest_files /usr/share/stconfig/stbin/qa/appliance/wikitestfiles.zip
+
+# Create an administrator in the "Ryker" Account
+run_sudo_on_ve st-admin create-account      -n Ryker
+run_sudo_on_ve st-admin set-default-account --account Ryker
+run_sudo_on_ve st-admin create-user         -e devnull1@socialtext.com -p d3vnu11l
+run_sudo_on_ve st-admin give-accounts-admin -e devnull1@socialtext.com
+run_sudo_on_ve st-admin give-system-admin   -e devnull1@socialtext.com
+
+run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin signals
+run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin people
+run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin socialpoint
+
+run_sudo_on_ve ceqlotron -f -o
+
+# Copy the current "demo" script over to the VE
+cp $ST_CURRENT/nlw/share/workspaces/wikitests/demo .
+perl -pi -e "s/\@gmail.com/\@ken.socialtext.net/gi" demo
+perl -pi -e "s/demo.socialtext.net/$ST_VE_NAME.socialtext.net/gi" demo
+rsync demo $ST_VE_NAME.socialtext.net:
+rm -f demo
+
+# Run the demo script on the VE
+run_sudo_on_ve stbin/run-wiki-tests -f demo --test-workspace admin --test-server http://$ST_VE_NAME.socialtext.net
