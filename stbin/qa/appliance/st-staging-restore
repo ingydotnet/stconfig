@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+sudo id > /dev/null
+
+# SSL Setup
+
+servername=$HOSTNAME
+openssl genrsa 1024 > $servername.key
+openssl req -new -x509 -nodes -sha1 -days 1825 -key $servername.key -subj "/C=US/ST=CA/L=Palo Alto/O=Socialtext/CN=$servername/" > $servername.crt
+sudo cp $servername.key /etc/ssl/private
+sudo cp $servername.crt /etc/ssl/certs
+sudo st-config set ssl_only 1
+sudo dpkg-reconfigure st-webserver
+
+# Restore the latest staging backup
+
+sudo st-appliance-config set local_archivedir /mnt/staging
+sudo st-appliance-confg get local_archivedir
+sudo mount topaz.socialtext.net:/var/local/samba/appliance-backup /mnt
+
+echo "Starting restore latest.  Logs are in /var/run/socialtext/"
+
+sudo st-appliance-restore-latest
+sudo st-email disable
