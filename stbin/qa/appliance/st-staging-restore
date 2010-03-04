@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-sudo id > /dev/null
+echo -n TO RESTORE THIS VE to staging, type ENTER.  To ABORT, type CTRL-C
+read GOAHEAD
 
 # SSL Setup
 
@@ -16,10 +17,12 @@ sudo dpkg-reconfigure st-webserver
 # Restore the latest staging backup
 
 sudo st-appliance-config set local_archivedir /mnt/staging
-sudo st-appliance-confg get local_archivedir
 sudo mount topaz.socialtext.net:/var/local/samba/appliance-backup /mnt
 
 echo "Starting restore latest.  Logs are in /var/run/socialtext/"
 
 sudo st-appliance-restore-latest
+
+echo DISABLING EMAIL ON THIS BOX
+
 sudo st-email disable

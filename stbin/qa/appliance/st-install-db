@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 set -e
 
 if [ "$1" == "" ]; then
@@ -8,23 +8,13 @@ fi
 
 echo INSTALLING $1 database
 sudo id
-sudo su -
-/etc/init.d/apache-perl stop
-/etc/init.d/ceqlotron stop
-svc -d /usr/lib/service/*
+sudo st-appliance-ctl stop
 unset PGUSER
 unset PGDATABASE
-st-db dropdb -s socialtext
-st-db createdb -s socialtext
-st-db escalate_privs
-psql -U nlw NLW -f /path/to/prod-dump.SQL >/dev/null
-st-db revoke_privs
-/etc/init.d/apache-perl start
-/etc/init.d/ceqlotron start
-svc -u /usr/lib/service/*
-
-
-
-
-
-
+sudo st-db dropdb -s socialtext
+sudo st-db createdb -s socialtext
+sudo st-db escalate_privs
+sudo psql -U nlw NLW -f $1 >/dev/null
+sudo st-db revoke_privs
+sudo st-appliance-ctl start
+sudo st-email disable
