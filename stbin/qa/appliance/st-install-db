@@ -9,6 +9,7 @@ fi
 echo INSTALLING $1 database
 sudo id
 sudo st-appliance-ctl stop
+sudo st-email disable
 unset PGUSER
 unset PGDATABASE
 sudo st-db dropdb -s socialtext
@@ -16,5 +17,6 @@ sudo st-db createdb -s socialtext
 sudo st-db escalate_privs
 sudo psql -U nlw NLW -f $1 >/dev/null
 sudo st-db revoke_privs
+sudo st-email disable
 sudo st-appliance-ctl start
 sudo st-email disable
