@@ -49,7 +49,6 @@ run_sudo_on_ve st-admin give-system-admin   -e devnull1@socialtext.com
 
 run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin signals
 run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin people
-run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin socialpoint
 
 # Flush the Ceq queue, to make sure Users are all indexed
 run_sudo_on_ve ceqlotron -f -o
@@ -63,3 +62,6 @@ rm -f demo
 
 # Run the demo script on the VE
 run_sudo_on_ve stbin/run-wiki-tests -f demo --test-workspace admin --test-server http://$ST_VE_NAME.socialtext.net
+
+# Enable Socialpoint on the "ademo" Workspace in the Ryker account
+run_sudo_on_ve st-admin enable-plugin --plugin socialpoint --workspace ademo
