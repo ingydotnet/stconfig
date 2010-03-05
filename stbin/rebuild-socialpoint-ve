@@ -51,6 +51,7 @@ run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin signals
 run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin people
 run_sudo_on_ve st-admin enable-plugin --all-accounts --plugin socialpoint
 
+# Flush the Ceq queue, to make sure Users are all indexed
 run_sudo_on_ve ceqlotron -f -o
 
 # Copy the current "demo" script over to the VE
