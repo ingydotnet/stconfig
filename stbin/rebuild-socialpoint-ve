@@ -29,6 +29,8 @@ vest -v $ST_VE_NAME -u master
 run_sudo_on_ve ceqlotron -f -o
 set -e
 
+run_sudo_on_ve st-appliance-install-plugin socialpoint
+
 # Add our test deps to the VE
 echo "# Extra repos we need for our testing tools"                   | run_sudo_on_ve tee -a /etc/apt/sources.list
 echo "deb https://apt.socialtext.net/ubuntu dapper main universe"    | run_sudo_on_ve tee -a /etc/apt/sources.list
