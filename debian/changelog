@@ -1,3 +1,9 @@
+stconfig (20100305-1267836126) socialtext; urgency=low
+
+  * Make svnrgrep ignore devices (need 2.5.2+ to ignore FIFOs tho)
+
+ -- Jeremy Stashewsky <stash@topaz.socialtext.net>  Fri,  5 Mar 2010 16:41:25 -0800
+
 stconfig (20100303-1267670116) socialtext; urgency=low
 
   * new upstream version
