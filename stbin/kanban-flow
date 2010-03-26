@@ -7,6 +7,14 @@ use Data::Dumper;
 use Storable ();
 use List::Util qw/sum max min reduce shuffle/;
 use List::MoreUtils qw/:all/;
+use Array::Heap;
+use Clone qw/clone/;
+
+# for using arrays-as-struct
+use constant Start => 0;
+use constant End   => 1;
+use constant Tags  => 2;
+use constant future => 0x7fffffff;
 
 $| = 1;
 
@@ -20,22 +28,23 @@ my $report_page = shift;
 
 sub say ($);
 
-my @state_order = qw/productmanagementpool inprep ready indev inqa awaitingsignoff/;
+my @state_order =
+    qw/productmanagementpool inprep ready indev inqa awaitingsignoff/;
 my %state_tags = (
     productmanagementpool => 'p',
-    inprep => 'P',
-    ready => 'R',
-    indev => 'D',
-    inqa => 'Q',
-    awaitingsignoff => 'S',
+    inprep                => 'P',
+    ready                 => 'R',
+    indev                 => 'D',
+    inqa                  => 'Q',
+    awaitingsignoff       => 'S',
 );
 my %state_display = (
     productmanagementpool => 'PMPool',
-    inprep => 'InPrep',
-    ready => 'Ready',
-    indev => 'InDev',
-    inqa => 'InQA',
-    awaitingsignoff => 'Signoff',
+    inprep                => 'InPrep',
+    ready                 => 'Ready',
+    indev                 => 'InDev',
+    inqa                  => 'InQA',
+    awaitingsignoff       => 'Signoff',
 );
 
 
@@ -97,6 +106,8 @@ for my $story (@$pages) {
 }
 
 simple_table();
+my $flows = cumulative_flow_data();
+#my $json = flot_cfd_json($flows);
 
 if ($report_page) {
     print "Putting " . $r->server
@@ -206,6 +217,141 @@ sub delta_to_string {
     }
 }
 
+sub _heapify_story_intervals {
+    my $heap = shift;
+
+    for my $story (@stories) {
+        my $page_id = $story->{page_id};
+        my $elem;
+        for my $interval (@{$story->{stats}{states}}) {
+            my $start = $interval->{at};
+            my $end = $start + ($interval->{dur}||1) - 1;
+            my %tags = map {
+                $_ => { $page_id => 1}
+            } keys %{$interval->{tags}};
+            $elem = [$start,$end,\%tags];
+            push_heap @$heap, $elem;
+        }
+        # make the last element end far in the future.
+        $elem->[End] = future;
+    }
+}
+
+# Convert a heapified set of story-intervals into an ordered sequence of
+# slices suitable for generating cumulative-flow and or gant-chart-like
+# information.  In theory, the data structure is updatable and could be used
+# for time-window searching.
+#
+# Output is a list of discrete start-end-tags triplets in
+# monitonically-increasing order by epoch timestamps.  The last element will
+# have an end-time set to 0x7fffffff.  Each tag will have a hash of page_ids
+# that have that tag in the interval.  So, for cumulative flow, count the
+# number of pages associated with each tag.  A page missing from tags means
+# hasn't entered the kanban yet.  The '' tag means its also not on the kanban.
+#
+# [
+#   [12, 34, { foo => {story_a=>1, story_b=>1}                     }],
+#   [35, 70, { foo => {story_b=>1},            bar => {story_a=>1} }],
+#   [71, 75, { bar => {story_a=>1, story_b=>1}                     }],
+#   [76, 80, { bar => {story_a=>1, story_b=>1}                     }],
+#   [81, 85, { bar => {story_b=>1},            '' => {story_a=>1}  }],
+#   [86, 0x7fffffff, { '' => {story_a=>1, story_b=>1} }],
+# ]
+#
+# It's a bit hard to explain what's going on in the algorithm below, so i've
+# used ASCII-art to illustrate.  Picture a timeline going from left to right.
+# When the letters are above each other, that means they both occupy that
+# slice of time.
+
+sub cumulative_flow_data {
+    my @heap;
+
+    _heapify_story_intervals(\@heap);
+
+    my @slices;
+    my $cur = pop_heap @heap;
+    my $next = $heap[0];
+    while ($next) {
+        # A is '$cur', B is '$next' and C is a merger of the two.  Dots mean a
+        # continuation of some interval.
+        if ($cur->[Start] == $next->[Start]) {
+            # Case 1
+            # AA......
+            # BB.....
+            if ($cur->[End] != $next->[End]) {
+                if ($cur->[End] < $next->[End]) {
+                    # Case 1b reduces to mirror of 1c
+                    # AA       BBBB
+                    # BBBB --> AA  
+                    # CCBB     CCBB
+#                     diag "1b swapping cur and next";
+                    my $tmp = $next;
+                    $next = $cur;
+                    $cur = $tmp;
+                }
+                # Case 1c reduces to 1a if we split cur
+                # AAAA     AAaa
+                # BB   --> BB
+                # CCAA     CCaa
+#                 diag "1c splitting cur";
+                my $new = [@$cur]; # shallow copy
+                $new->[Start] = $next->[End]+1;
+                $cur->[End] = $next->[End];
+                push_heap @heap, $new;
+            }
+
+            # Case 1a
+            # AA
+            # BB
+            # CC
+#             diag "1a equal intervals";
+            # merge: sum tag counts, union name set
+            $cur->[Tags] = clone $cur->[Tags];
+            for my $tag (keys %{$next->[Tags]}) {
+                for my $name (keys %{$next->[Tags]{$tag}}) {
+                    $cur->[Tags]{$tag}{$name} = 1;
+                }
+            }
+            $next = pop_heap @heap;
+        }
+        else { # $cur->[Start] < $next->[Start] is implied
+            # case 2
+            # AA......
+            #   BB.....
+            if ($cur->[End] < $next->[Start]) {
+                # Case 2a
+                # AA     
+                #   BB.....
+#                 diag '2a no overlap';
+#                 diag YAML::Dump($cur);
+                push @slices, $cur;
+                $cur = $next;
+                $next = pop_heap @heap;
+            }
+            else {
+                # Case 2b: reduction to Case 1a/1b
+                # AAAA          aaAA
+                #   BBB.... -->   BBB...
+                # AACCB....     aaCCB...
+
+                # Peel off the interval before the overlap (aa) and add that
+                # to the results. Shorten the current (AA) and go to the next
+                # loop which will hit Case 1
+#                 diag "2b peeling off copy of cur";
+                my $new = [@$cur];
+                $new->[End] = $next->[Start]-1;
+                $cur->[Start] = $next->[Start];
+#                 diag YAML::Dump($new);
+                push @slices, $new;
+            }
+        }
+    }
+#     diag YAML::Dump($cur);
+    # last item doesn't overlap with anything, so just add it.
+    push @slices, $cur;
+    return \@slices;
+}
+
 {
     my $page_content;
     sub say ($) {
@@ -233,4 +379,3 @@ sub simple_table {
     }
     say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n";
 }
-
