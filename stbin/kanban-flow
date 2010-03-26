@@ -4,15 +4,19 @@ use warnings;
 use Socialtext::Resting::Getopt qw/get_rester/;
 use DateTime;
 use Data::Dumper;
+use Storable ();
+use List::Util qw/sum max min reduce shuffle/;
+use List::MoreUtils qw/:all/;
 
 $| = 1;
 
 my $r = get_rester(workspace => 'dev-tasks');
-my $tag = shift || 'allyourbase' or die <<EOT;
-USAGE: $0 <release>
+$r->accept('perl_hash');
+
+my $rel_tag = shift || 'bonsaikitten' or die <<EOT;
+USAGE: $0 <release> <page_to_upload_to_on_dev-tasks>
 EOT
 my $report_page = shift;
-my $DEBUG = 0;
 
 sub say ($);
 
@@ -25,143 +29,155 @@ my %state_tags = (
     inqa => 'Q',
     awaitingsignoff => 'S',
 );
+my %state_display = (
+    productmanagementpool => 'PMPool',
+    inprep => 'InPrep',
+    ready => 'Ready',
+    indev => 'InDev',
+    inqa => 'InQA',
+    awaitingsignoff => 'Signoff',
+);
 
-$r->accept('perl_hash');
+
+my $pages;
+my $cachefile = "cache-$rel_tag.sto";
+if (-e $cachefile) {
+    print "loading $cachefile...\n";
+    $pages = Storable::retrieve($cachefile);
+}
+else {
+    print "searching for pages tagged '$rel_tag'...\n";
+    my $tmp_pages = $r->get_taggedpages($rel_tag);
+    my $pages = [];
+    print "downloading pages...\n";
+    for my $page (@$tmp_pages) {
+        print "fetching $page->{page_id}...\n";
+        $page->{tags} = { map { lc($_) => 1 } @{$page->{tags}||[]} };
+        unless ($page->{tags}{story}) {
+            print "\tnot a story\n";
+            next;
+        }
+        $page->{revisions} = $r->get_revisions($page->{page_id});
+        push @$pages, $page;
+    }
+    print "saving cache...\n";
+    Storable::store($pages => $cachefile);
+}
+print "done\n";
 
 my @stories;
-for my $story (@{ $r->get_taggedpages($tag) }) {
-    $story->{tags} = { map { lc($_) => 1 } @{ $story->{tags} } };
-    next unless $story->{tags}{story};
-
-    print "$story->{name}: ";
-    $story->{revisions} = $r->get_revisions($story->{page_id});
+for my $story (@$pages) {
     my %state;
-    for my $rev (@{ $story->{revisions} } ) {
-        print '.';
-        $rev->{tags} = { map { lc($_) => 1 } @{ $rev->{tags} } };
-        my $rev_ts = $rev->{dt} = revision_id_to_datetime($rev->{revision_id});
 
-        # Look through all the keys in this revision to see if they put us in
-        # a new state.
-        for my $tag (keys %{ $rev->{tags} }) {
-            next unless $state_tags{$tag}; # the tag is a valid Kanban State Name
-            next if $state{$tag}{start}; # the state has been started
-            $state{$tag}{start} = $rev_ts;
-            print '+' . $state_tags{$tag};
-            $state{last_started_state} = $tag;
-            $state{first_entered_kanban} ||= $rev_ts;
-        }
+    my @revs;
 
-        # Now look through all the tags we already had to see if any aren't in
-        # the current revision, indicating we've left state.
-        for my $tag (keys %state) {
-            next if $rev->{tags}{$tag}; # tag is still there
-            next unless $state_tags{$tag};
-            next unless defined $state{$tag}{start}; # 
-            my $l = $state{$tag}{last} = {
-                started_at => $state{$tag}{start},
-                finished_at => $rev_ts,
-            };
-            push @{ $state{$tag}{finishes} }, $l;
-            $state{$tag}{first_start} ||= delete $state{$tag}{start};
-            print '-' . $state_tags{$tag};
-        }
+    for my $rev (@{ $story->{revisions} || [] }) {
+        delete $rev->{modified_time}; # useless; never changes.
+
+        my %tags = map { $_ => 1 }
+                   grep { exists $state_tags{$_} }
+                   map { lc($_) } @{ $rev->{tags} };
+        my $rev_ts = revision_id_to_datetime($rev->{revision_id});
+        my $state = join(', ', grep { exists $tags{$_} } @state_order);
+        push @revs, [$rev_ts->epoch, \%tags, $state];
     }
 
-    # See what the current cumulative state is
-    $state{current} = [];
-    for my $tag (@state_order) {
-        next unless exists $state{$tag};
-        next if $state{$tag}{done};
-        push @{ $state{current} }, $tag;
-        my $started_at = $state{$tag}{start} || $state{$tag}{first_start}
-            or die "Started_at is undef! ($tag)";
-        my $l = $state{$tag}{last} = {
-            started_at => $started_at,
-            finished_at => DateTime->now,
-        };
-        push @{ $state{$tag}{finishes} }, $l;
-        $state{left_kanban} = $l->{finished_at};
-    }
+    my $info = summarize_revs(\@revs);
 
-    # Look for any stories that are "done done", and then calculate stats
-    # about how long each phase took
-    if (my $done = $state{awaitingsignoff}{last}) {
-        my $done_ts = $done->{finished_at};
-        $state{left_kanban} = $done_ts;
-        # story is "finished"
-        for my $tag (@state_order) {
-            if (my $start_ts = $state{$tag}{first_start}) {
-                $state{summary}{$tag} = {
-                    start => $start_ts,
-                    done_done => $done_ts,
-                };
-            }
-            else {
-                $state{summary}{$tag} = { skipped => 1 };
-            }
-        }
-    }
-    $story->{state} = \%state;
+    $info->{spark} = '`' . join('',
+        map { $state_tags{$_->{state}} || '-' } @{$info->{states}}) . '`';
+
+    my $done = ($info->{states}[-1]{state} eq 'signedoff' or
+                $info->{states}[-1]{state} eq '' &&
+                    $info->{last_idx}{awaitingsignoff});
+    $info->{is_done} = ! ! $done;
+
+    $story->{stats} = $info;
     push @stories, $story;
-    print "\n";
 }
 
-
-say "Metrics for stories tagged: $tag\n";
-
-if (my @current_stories = grep { !defined $_->{state}{summary} } @stories) {
-    say "^^ Current Stories\n";
-    say "| *Story* | *PMPool* | *InPrep* | *Ready* | *Dev* | *QA* | *Signoff* | *Total* |";
-    for my $s (@current_stories) {
-        my $line = "| [$s->{name}] |";
-        for my $tag (@state_order) {
-            my $last = $s->{state}{$tag}{last};
-            my $bold = $s->{state}{last_started_state} eq $tag ? '*' : '';
-            if ($last) {
-                my $duration = duration_to_string($last->{started_at}, $last->{finished_at});
-                $line .= " $bold$duration$bold |"
-            }
-            else {
-                $line .= " |";
-            }
-        }
-        my $total = duration_to_string($s->{state}{first_entered_kanban} => $s->{state}{left_kanban});
-        $line .= " $total |";
-        say $line;
-    }
-    say '';
-}
-
-if (my @done_stories = grep { $_->{state}{summary} } @stories) {
-    say "^^ Done Stories\n";
-    say "| *Story* | *PMPool* | *InPrep* | *Ready* | *Dev* | *QA* | *Signoff* | *Total* |";
-    for my $s (@done_stories) {
-        my $line = "| [$s->{name}] |";
-        my $summary = $s->{state}{summary};
-        for my $tag (@state_order) {
-            my $tag_state = $summary->{$tag};
-            if ($tag_state->{done_done}) {
-                my $d = duration_to_string($tag_state->{start}, $tag_state->{done_done});
-                $line .= " $d |"
-            }
-            else {
-                $line .= " |";
-            }
-        }
-        my $total = duration_to_string($s->{state}{first_entered_kanban} => $s->{state}{left_kanban});
-        $line .= " $total |";
-        say $line;
-    }
-    say '';
-}
+simple_table();
 
 if ($report_page) {
-    print "Putting " . $r->server . '/' . $r->workspace . "/?$report_page ...\n";
+    print "Putting " . $r->server
+        . '/' . $r->workspace . "/?$report_page ...\n";
     $r->put_page($report_page, page_content());
 }
 
-exit;
+exit 0;
+
+sub summarize_revs {
+    my $revisions = shift;
+    my @revs = sort { $a->[0] <=> $b->[0] } @$revisions;
+
+    my @state_flow;
+    {
+        my ($at, $tags, $state) = @{shift(@revs)};
+        push @state_flow, {
+            at    => $at,
+            tags  => {%$tags}, # copy
+            state => $state,
+            dur   => 0,
+        };
+
+        # Two tasks: 1) calculate the time spent in each kanban state 2)
+        # collapse multiple edits within the same state to a single record in
+        # a "state_flow".
+        while (my $rev = shift @revs) {
+            ($at, $tags, $state) = @$rev;
+            my $prev = $state_flow[-1];
+            my $time = $at - ($prev->{at} + $prev->{dur});
+
+            if ($state eq $prev->{state}) {
+                $prev->{dur} += $time;
+            }
+            else {
+                push @state_flow, {
+                    at    => $at,
+                    tags  => {%$tags}, # copy
+                    state => $state,
+                    dur   => 0,
+                };
+            }
+        }
+    }
+
+    my %total_per_state;
+    for my $t (@state_order) {
+        $total_per_state{$t} =
+            sum map { $_->{dur} }
+            grep { $_->{tags}{$t} }
+            @state_flow;
+    }
+
+    my (%first, %last);
+    my (%before_dur, %after_dur);
+    for my $t (@state_order) {
+        $first{$t} = firstidx { $_->{tags}{$t} } @state_flow;
+        $last{$t}  =  lastidx { $_->{tags}{$t} } @state_flow;
+
+        my ($before, $after);
+        if ($first{$t}) {
+            # duration before first tag instance
+            $before_dur{$t} += $_->{dur}
+                for @state_flow[0 .. $first{$t}-1];
+        }
+        if ($last{$t} && $last{$t} < $#state_flow) {
+            # duration after last tag instance
+            $after_dur{$t} += $_->{dur}
+                for @state_flow[$last{$t}+1 .. $#state_flow];
+        }
+    }
+
+    return {
+        states => \@state_flow,
+        first_idx => \%first,
+        last_idx => \%last,
+        dur_before_first => \%before_dur,
+        dur_after_last => \%after_dur,
+        total_per_state => \%total_per_state,
+    };
+}
 
 sub revision_id_to_datetime {
     my $rev_id = shift;
@@ -173,29 +189,20 @@ sub revision_id_to_datetime {
     );
 }
 
-sub duration_to_string {
-    my $start = shift;
-    my $stop  = shift;
-    my $start_epoch = $start->epoch;
-    my $stop_epoch  = $stop->epoch;
-    my $seconds = $stop_epoch - $start_epoch;
-
-    my $hour = 60 * 60;
-    if ($seconds < $hour) {
-        my $minutes = 0;
-        while ($seconds > 60) { $seconds -= 60; $minutes++ }
-        return "$minutes minutes";
+sub delta_to_string {
+    my $seconds = shift;
+    if ($seconds < 3600) {
+        my $minutes =  int($seconds / 60);
+        return "0" if $minutes == 0;
+        return "$minutes m";
     }
-    elsif ($seconds < $hour * 40) {
-        my $hours = 0;
-        while ($seconds > $hour) { $seconds -= $hour; $hours++ }
-        return "$hours hours";
+    elsif ($seconds < 3600 * (48+6)) {
+        my $hours = int($seconds / 3600);
+        return "$hours h";
     }
     else {
-        my $days = 0;
-        my $day = $hour * 24;
-        while ($seconds > $day) { $seconds -= $day; $days++ }
-        return "$days days";
+        my $days = sprintf('%0.1f', $seconds / 86400);
+        return "$days d";
     }
 }
 
@@ -211,5 +218,19 @@ sub duration_to_string {
     }
 
     sub page_content { $page_content }
+}
+
+sub simple_table {
+    say "Cumulative time spent in each state (including evenings and weekends)\n";
+    say "| *Task* | *Sparkline* | " .
+        join(' | ', map {"*$state_display{$_}*"} @state_order) . " |";
+    for my $story (@stories) {
+        my $info = $story->{stats};
+        my $line = "| [$story->{name}] | $info->{spark} | ";
+        $line .= " ".delta_to_string($info->{total_per_state}{$_} || 0)." |"
+            for @state_order;
+        say $line;
+    }
+    say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n";
 }
 
