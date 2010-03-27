@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Flot Examples</title>
+    <link href="layout.css" rel="stylesheet" type="text/css"></link>
+    <!--[if IE]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="flot-0.6/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="flot-0.6/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="flot-0.6/jquery.flot.stack.js"></script>
+ </head>
+    <body>
+    <h1>Bonsai Kitten</h1>
+
+    <div id="placeholder" style="width:1000px;height:500px;"></div>
+
+    <p id="choices">Show:</p>
+
+<script id="source" language="javascript" type="text/javascript">
+$(function () {
+
+    $.getJSON("bonsaikitten-cfd.json", function(datasets) {
+
+        // hard-code color indices to prevent them from shifting
+        var i = 0;
+        $.each(datasets, function(key, val) {
+            val.color = i;
+            ++i;
+        });
+        
+        // insert checkboxes 
+        var choiceContainer = $("#choices");
+        var keys = [
+            'productmanagementpool',
+            'inprep',
+            'ready',
+            'indev',
+            'inqa',
+            'awaitingsignoff',
+            'donedone'
+        ];
+        var rev_keys = [
+            'donedone',
+            'awaitingsignoff',
+            'inqa',
+            'indev',
+            'ready',
+            'inprep',
+            'productmanagementpool'
+        ];
+
+        $.each(rev_keys, function(i, key) {
+            var label = datasets[key].label;
+            choiceContainer.append('<br/><input type="checkbox" name="' + key +
+                                   '" checked="checked" id="cbx4' + key + '">' +
+                                   '<label for="id' + key + '">'
+                                    + label + '</label>');
+        });
+        choiceContainer.find("input").click(plotAccordingToChoices);
+    
+        function plotAccordingToChoices() {
+            var data = [];
+
+            $.each(keys, function(i, key) {
+                var e = $('#cbx4'+key);
+                if (e.attr('checked'))
+                    data.push(datasets[key]);
+            });
+
+            $.each(datasets, function(key, set) {
+                set.data = $.grep(set.data, function(point) {
+                    return point[1]; // filter out '0' elements
+                });
+            });
+
+            if (data.length > 0)
+                $.plot($("#placeholder"), data, {
+                    series: {
+                        stack: true,
+                        lines: { show: true, fill: false, steps: true }
+                    },
+                    yaxis: {
+                        min: 0
+                    },
+                    xaxis: {
+                        mode: "time",
+                        tickDecimals: 0
+                    }
+                });
+        }
+    
+        plotAccordingToChoices();
+    });
+});
+</script>
+
+ </body>
+</html>
