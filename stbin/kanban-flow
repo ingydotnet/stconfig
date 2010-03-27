@@ -9,6 +9,7 @@ use List::Util qw/sum max min reduce shuffle/;
 use List::MoreUtils qw/:all/;
 use Array::Heap;
 use Clone qw/clone/;
+use JSON::XS qw(encode_json);
 
 # for using arrays-as-struct
 use constant Start => 0;
@@ -106,8 +107,14 @@ for my $story (@$pages) {
 }
 
 simple_table();
-my $flows = cumulative_flow_data();
-#my $json = flot_cfd_json($flows);
+my $slices = cumulative_flow_data();
+my $cfd = flot_cfd_json($slices);
+{
+    my $filename = $rel_tag.'-cfd.json';
+    open my $fh, '>', $filename;
+    print $fh encode_json($cfd);
+    close $fh;
+}
 
 if ($report_page) {
     print "Putting " . $r->server
@@ -350,6 +357,35 @@ sub cumulative_flow_data {
     # last item doesn't overlap with anything, so just add it.
     push @slices, $cur;
     return \@slices;
+}
+
+sub flot_cfd_json {
+    my $slices = shift;
+    #
+    # var datasets = {
+    #   "usa": {
+    #     "label":"USA",
+    #     "data":[ ... [x,y] ... ]
+    #   }
+    # };
+
+    my %data = map {$_ => []} @state_order;
+    for my $slice (@$slices) {
+        my $x = $slice->[Start] * 1000;
+        for my $tag (@state_order) {
+            my $y = keys %{$slice->[Tags]{$tag}};
+            push @{$data{$tag}}, [$x,$y];
+        }
+    }
+
+    my %datasets;
+    for my $tag (@state_order) {
+        $datasets{$tag} = {
+            label => $state_display{$tag},
+            data => $data{$tag},
+        };
+    }
+    return \%datasets;
 }
 
 {
