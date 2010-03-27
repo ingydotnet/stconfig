@@ -30,7 +30,7 @@ my $report_page = shift;
 sub say ($);
 
 my @state_order =
-    qw/productmanagementpool inprep ready indev inqa awaitingsignoff/;
+    qw/productmanagementpool inprep ready indev inqa awaitingsignoff donedone/;
 my %state_tags = (
     productmanagementpool => 'p',
     inprep                => 'P',
@@ -38,6 +38,7 @@ my %state_tags = (
     indev                 => 'D',
     inqa                  => 'Q',
     awaitingsignoff       => 'S',
+    donedone              => '$',
 );
 my %state_display = (
     productmanagementpool => 'PMPool',
@@ -46,6 +47,7 @@ my %state_display = (
     indev                 => 'InDev',
     inqa                  => 'InQA',
     awaitingsignoff       => 'Signoff',
+    donedone              => 'Done',
 );
 
 
@@ -229,18 +231,27 @@ sub _heapify_story_intervals {
 
     for my $story (@stories) {
         my $page_id = $story->{page_id};
-        my $elem;
+        my @elems;
         for my $interval (@{$story->{stats}{states}}) {
             my $start = $interval->{at};
             my $end = $start + ($interval->{dur}||1) - 1;
             my %tags = map {
                 $_ => { $page_id => 1}
             } keys %{$interval->{tags}};
-            $elem = [$start,$end,\%tags];
+            my $elem = [$start,$end,\%tags];
+            push @elems, $elem;
             push_heap @$heap, $elem;
         }
         # make the last element end far in the future.
-        $elem->[End] = future;
+        $elems[-1][End] = future;
+        use XXX; WWW([@elems[-2,-1]]);
+
+        if (@elems > 2 &&
+            $elems[-2][Tags]{awaitingsignoff} &&
+            ! any { $state_tags{$_} } keys %{$elems[-1][Tags]})
+        {
+            $elems[-1][Tags]{donedone} = { $page_id=>1 };
+        }
     }
 }
 
@@ -356,6 +367,7 @@ sub cumulative_flow_data {
 #     diag YAML::Dump($cur);
     # last item doesn't overlap with anything, so just add it.
     push @slices, $cur;
+
     return \@slices;
 }
 
