@@ -19,6 +19,10 @@ sudo dpkg-reconfigure st-webserver
 sudo st-appliance-config set local_archivedir /mnt/staging
 sudo mount topaz.socialtext.net:/var/local/samba/appliance-backup /mnt
 
+echo "Refreshing backup list"
+
+sudo st-appliance-restore --refresh
+
 echo "Starting restore latest.  Logs are in /var/run/socialtext/"
 
 sudo st-appliance-restore-latest
