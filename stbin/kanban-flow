@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use Getopt::Long;
 use Socialtext::Resting::Getopt qw/get_rester/;
 use DateTime;
 use Data::Dumper;
@@ -10,6 +11,8 @@ use List::MoreUtils qw/:all/;
 use Array::Heap;
 use Clone qw/clone/;
 use JSON::XS qw(encode_json);
+use File::Temp qw/tempfile/;
+use IPC::Run qw/run/;
 
 # for using arrays-as-struct
 use constant Start => 0;
@@ -17,15 +20,51 @@ use constant End   => 1;
 use constant Tags  => 2;
 use constant future => 0x7fffffff;
 
+our @getopt_args;
+
 $| = 1;
 
-my $r = get_rester(workspace => 'dev-tasks');
+our $r;
+
+# process resting opts first.
+$r = get_rester(workspace => 'dev-tasks');
 $r->accept('perl_hash');
 
-my $rel_tag = shift || 'bonsaikitten' or die <<EOT;
-USAGE: $0 <release> <page_to_upload_to_on_dev-tasks>
+our %opts = (
+    'report' => [],
+    'json' => [],
+    'cache' => 1,
+    'sot' => 1,
+);
+GetOptions(\%opts,
+    'cache!', 'simple-table!', 'flot-json!', 'report=s@', 'sot!', 'spark!'
+);
+
+my $rel_tag = $opts{release} || shift || 'chocolaterain' or die <<EOT;
+USAGE: $0 (options) releasetag
+Options:
+    --no-cache      Don't use a disk cache for page history. (default: on)
+    --release=X     Use this release tag.
+    --report=X      Generate the specified report (can have many)
+    --json=X        Output the specified JSON blob.
+    --no-sot        Don't use 8AM PST/PDT as "now".
+
+Reports:
+    simple      a wiki table with cumulative times for each story-state,
+                "sparklines" for each story.
+    standup     a wiki table for stories currently InDev, InQA, and
+                AwaitingSignoff, for highlight during standups.
+
+JSON exports:
+    flot-cfd    data for a flot.js-based release CFD.
 EOT
-my $report_page = shift;
+
+$opts{report} = { map {$_=>1} @{$opts{report}} };
+$opts{json} = { map {$_=>1} @{$opts{json}} };
+
+unless (%{$opts{report}} or %{$opts{json}}) {
+    $opts{report}{simple} = 1;
+}
 
 sub say ($);
 
@@ -50,79 +89,31 @@ my %state_display = (
     donedone              => 'Done',
 );
 
+our ($pages, $stories, $now, $now_epoch);
 
-my $pages;
-my $cachefile = "cache-$rel_tag.sto";
-if (-e $cachefile) {
-    print "loading $cachefile...\n";
-    $pages = Storable::retrieve($cachefile);
+$now = DateTime->now;
+$now->set_time_zone('America/Vancouver');
+if ($opts{sot}) {
+    # use 8AM SOT as the current time.
+    $now->set(hour => 8, minute => 0, second => 0);
 }
-else {
-    print "searching for pages tagged '$rel_tag'...\n";
-    my $tmp_pages = $r->get_taggedpages($rel_tag);
-    my $pages = [];
-    print "downloading pages...\n";
-    for my $page (@$tmp_pages) {
-        print "fetching $page->{page_id}...\n";
-        $page->{tags} = { map { lc($_) => 1 } @{$page->{tags}||[]} };
-        unless ($page->{tags}{story}) {
-            print "\tnot a story\n";
-            next;
-        }
-        $page->{revisions} = $r->get_revisions($page->{page_id});
-        push @$pages, $page;
-    }
-    print "saving cache...\n";
-    Storable::store($pages => $cachefile);
-}
-print "done\n";
+$now_epoch = $now->epoch;
 
-my @stories;
-for my $story (@$pages) {
-    my %state;
+$pages = load_pages();
+$stories = extract_stories_from_page_list();
 
-    my @revs;
-
-    for my $rev (@{ $story->{revisions} || [] }) {
-        delete $rev->{modified_time}; # useless; never changes.
-
-        my %tags = map { $_ => 1 }
-                   grep { exists $state_tags{$_} }
-                   map { lc($_) } @{ $rev->{tags} };
-        my $rev_ts = revision_id_to_datetime($rev->{revision_id});
-        my $state = join(', ', grep { exists $tags{$_} } @state_order);
-        push @revs, [$rev_ts->epoch, \%tags, $state];
-    }
-
-    my $info = summarize_revs(\@revs);
-
-    $info->{spark} = '`' . join('',
-        map { $state_tags{$_->{state}} || '-' } @{$info->{states}}) . '`';
-
-    my $done = ($info->{states}[-1]{state} eq 'signedoff' or
-                $info->{states}[-1]{state} eq '' &&
-                    $info->{last_idx}{awaitingsignoff});
-    $info->{is_done} = ! ! $done;
-
-    $story->{stats} = $info;
-    push @stories, $story;
+if ($opts{json}{'flot-cfd'}) {
+    my $slices = cumulative_flow_data();
+    my $cfd = flot_cfd_struct($slices);
+    export_cfd_json($cfd);
 }
 
-simple_table();
-my $slices = cumulative_flow_data();
-my $cfd = flot_cfd_json($slices);
-{
-    my $filename = $rel_tag.'-cfd.json';
-    open my $fh, '>', $filename;
-    print $fh encode_json($cfd);
-    close $fh;
+if ($opts{report}{simple}) {
+    simple_table();
 }
 
-if ($report_page) {
-    print "Putting " . $r->server
-        . '/' . $r->workspace . "/?$report_page ...\n";
-    $r->put_page($report_page, page_content());
-}
+export_to_page($opts{'report-page'})
+    if $opts{'report-page'};
 
 exit 0;
 
@@ -146,6 +137,10 @@ sub summarize_revs {
         while (my $rev = shift @revs) {
             ($at, $tags, $state) = @$rev;
             my $prev = $state_flow[-1];
+
+            # ignore states after "now" (the max time we're considering)
+            next if $at > $now_epoch;
+
             my $time = $at - ($prev->{at} + $prev->{dur});
 
             if ($state eq $prev->{state}) {
@@ -160,6 +155,12 @@ sub summarize_revs {
                 };
             }
         }
+    }
+
+    # extend the last state to "now"
+    {
+        my $last = $state_flow[-1];
+        $last->{dur} += ($now_epoch - $last->{at});
     }
 
     my %total_per_state;
@@ -229,7 +230,7 @@ sub delta_to_string {
 sub _heapify_story_intervals {
     my $heap = shift;
 
-    for my $story (@stories) {
+    for my $story (@$stories) {
         my $page_id = $story->{page_id};
         my @elems;
         for my $interval (@{$story->{stats}{states}}) {
@@ -244,7 +245,6 @@ sub _heapify_story_intervals {
         }
         # make the last element end far in the future.
         $elems[-1][End] = future;
-        use XXX; WWW([@elems[-2,-1]]);
 
         if (@elems > 2 &&
             $elems[-2][Tags]{awaitingsignoff} &&
@@ -371,7 +371,7 @@ sub cumulative_flow_data {
     return \@slices;
 }
 
-sub flot_cfd_json {
+sub flot_cfd_struct {
     my $slices = shift;
     #
     # var datasets = {
@@ -405,7 +405,7 @@ sub flot_cfd_json {
     sub say ($) {
         my $msg = shift;
         print "$msg\n";
-        if ($report_page) {
+        if ($opts{'report-page'}) {
             $page_content ||= "This page is auto-generated.  Comments and changes will be lost.\n\n";
             $page_content .= "$msg\n";
         }
@@ -414,16 +414,104 @@ sub flot_cfd_json {
     sub page_content { $page_content }
 }
 
-sub simple_table {
-    say "Cumulative time spent in each state (including evenings and weekends)\n";
-    say "| *Task* | *Sparkline* | " .
-        join(' | ', map {"*$state_display{$_}*"} @state_order) . " |";
-    for my $story (@stories) {
-        my $info = $story->{stats};
-        my $line = "| [$story->{name}] | $info->{spark} | ";
-        $line .= " ".delta_to_string($info->{total_per_state}{$_} || 0)." |"
-            for @state_order;
-        say $line;
+sub load_pages {
+    my $pages;
+    my $cachefile = "cache-$rel_tag.sto";
+    if (-e $cachefile) {
+        print "loading $cachefile...\n";
+        $pages = Storable::retrieve($cachefile);
     }
-    say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n";
+    else {
+        print "searching for pages tagged '$rel_tag'...\n";
+        my $tmp_pages = $r->get_taggedpages($rel_tag);
+        $pages = [];
+        print "downloading pages...\n";
+        for my $page (@$tmp_pages) {
+            print "fetching $page->{page_id}...\n";
+            $page->{tags} = { map { lc($_) => 1 } @{$page->{tags}||[]} };
+            unless ($page->{tags}{story}) {
+                print "\tnot a story\n";
+                next;
+            }
+            $page->{revisions} = $r->get_revisions($page->{page_id});
+            push @$pages, $page;
+        }
+        print "saving cache...\n";
+        Storable::store($pages => $cachefile);
+    }
+    print "done\n";
+    return $pages;
+}
+
+sub extract_stories_from_page_list {
+    my @stories;
+    for my $story (@$pages) {
+        my %state;
+
+        my @revs;
+
+        for my $rev (@{ $story->{revisions} || [] }) {
+            delete $rev->{modified_time}; # useless; never changes.
+
+            my %tags = map { $_ => 1 }
+                       grep { exists $state_tags{$_} }
+                       map { lc($_) } @{ $rev->{tags} };
+            my $rev_ts = revision_id_to_datetime($rev->{revision_id});
+            my $state = join(', ', grep { exists $tags{$_} } @state_order);
+            push @revs, [$rev_ts->epoch, \%tags, $state];
+        }
+
+        my $info = summarize_revs(\@revs);
+
+        $info->{spark} = '`' . join('',
+            map { $state_tags{$_->{state}} || '-' } @{$info->{states}}) . '`';
+
+        my $done = ($info->{states}[-1]{state} eq 'signedoff' or
+                    $info->{states}[-1]{state} eq '' &&
+                        $info->{last_idx}{awaitingsignoff});
+        $info->{is_done} = ! ! $done;
+
+        $story->{stats} = $info;
+        push @stories, $story;
+    }
+    return \@stories;
+}
+
+sub export_cfd_json {
+    my $cfd = shift;
+    my $filename = $rel_tag.'-cfd.json';
+    open my $fh, '>', $filename;
+    print $fh encode_json($cfd);
+    close $fh;
+}
+
+sub export_to_page {
+    my $report_page = shift;
+    print "Putting " . $r->server
+        . '/' . $r->workspace . "/?$report_page ...\n";
+    $r->put_page($report_page, page_content());
+}
+
+sub simple_table {
+    my $buf = "| *Task* | ";
+    $buf .= "*Sparkline* | " if $opts{spark};
+    $buf .= join(' | ', map {"*$state_display{$_}*"} @state_order);
+    $buf .= " |\n";
+
+    for my $story (@$stories) {
+        my $info = $story->{stats};
+        $buf .= "| [$story->{name}] | ";
+        $buf .= "$info->{spark} | " if $opts{spark};
+        $buf .= " ".delta_to_string($info->{total_per_state}{$_} || 0)." |"
+            for @state_order;
+        $buf .= "\n";
+    }
+
+    my $pretty;
+
+    run(['fix-tables'], \$buf, \$pretty, undef);
+
+    say "Cumulative time spent in each state (including evenings and weekends)\n";
+    say $pretty;
+    say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
 }
