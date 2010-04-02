@@ -5,14 +5,20 @@
 sudo perl -pi -e 's/^#\s+deb http/deb http/' /etc/apt/sources.list
 sudo apt-get update
 
-DA=`sudo st-admin get-default-account | grep  -o $HOSTNAME`
+ACC=$1
+[ $ACC ] || ACC=$HOSTNAME
+DA=`sudo st-admin get-default-account | grep  -o $ACC`
+
+echo ""
 if [ "$DA"  != '' ]; then
-    echo default account matches $DA
+    echo DEFAULT ACCOUNT MATCHES  $ACC
 else
     echo  `sudo st-admin get-default-account`
-    echo "The default account should be the hostname, $HOSTNAME.  Exiting"
+    echo "The default account should be the hostname, $HOSTNAME"
+    echo "USE st-appliance-wikitests DEFAULT_ACCOUNT to specify default account.  Exiting"
     exit 1
 fi
+echo ""
 
 WIKITESTS="/usr/share/stconfig/stbin/qa/appliance"
 
@@ -40,7 +46,7 @@ if [ -e /var/www/socialtext/data/test-data ]; then
 fi
 echo "IMPORTING  test-data  WORKSPACE"
 sudo st-admin import-workspace --tarball $WIKITESTS/test-data.tar.gz
-sudo st-admin set-workspace-config --w test-data account_name $HOSTNAME || true
+sudo st-admin set-workspace-config --w test-data account_name $ACC || true
 sudo st-admin enable-plugin --p socialcalc --w test-data
 
 if [ -e /var/www/socialtext/data/wikitests ]; then
@@ -52,11 +58,11 @@ echo "IMPORTING wikitests WORKSPACE"
 sudo apt-get install --yes st-static-files-wikitests
 sudo ln -sf $WIKITESTS/fast-import-pages  /usr/bin/
 sudo $WIKITESTS/appliancetests-to-wiki
-sudo st-admin set-workspace-config --w wikitests account_name $HOSTNAME || true
+sudo st-admin set-workspace-config --w wikitests account_name $ACC || true
 
-echo "SETTING user accounts to $HOSTNAME, which is supposed to be the default account"
-sudo st-admin set-user-account --e wikitester@ken.socialtext.net --account $HOSTNAME
-sudo st-admin set-user-account --e devnull1@socialtext.com --account $HOSTNAME
+echo "SETTING user accounts to $ACC, which is supposed to be the default account"
+sudo st-admin set-user-account --e wikitester@ken.socialtext.net --account $ACC
+sudo st-admin set-user-account --e devnull1@socialtext.com --account $ACC
 
 echo "GRANTING Accounts and System admin to devnull1"
 sudo st-admin give-system-admin --e devnull1@socialtext.com
@@ -81,11 +87,7 @@ sudo ln -sf $WIKITESTS/st-qa-growth-report-populate-db /usr/bin/
 sudo ln -sf $WIKITESTS/st-populate-reports-db /usr/bin/
 sudo ln -sf $WIKITESTS/reports-functions.pl /usr/bin/
 
-echo "POPULATING reports DB"
-sudo st-populate-reports-db
-
 sudo st-appliance-config set max_objects_for_control_panel 500
-sudo st-appliance-config get max_objects_for_control_panel
 
 echo "Setting up /tmp/backup for Console Backup and Restore testing"
 sudo mkdir -p /tmp/backup
@@ -97,8 +99,10 @@ sudo chmod 644 /var/log/nlw.log
 sudo chmod 666 /var/cache/socialtext/logreader/*
 
 echo "Enabling email"
-sudo perl -pi -e "s/dc_eximconfig_configtype='local'/dc_eximconfig_configtype='internet'/" /etc/exim4/update-exim4.conf.conf
-sudo update-exim4.conf
-sudo /etc/init.d/exim4 restart
+sudo st-email enable
+
+echo "POPULATING reports DB"
+echo "CTRL-C to abort and finish wikitest installation"
+sudo st-populate-reports-db
 
 echo "DONE"

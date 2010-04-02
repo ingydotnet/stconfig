@@ -30,6 +30,7 @@ install: build
 	cp ../current/nlw/dev-bin/st-qa-growth-report-populate-db $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliance
 	cp ../current/nlw/dev-bin/st-consume-stub-reports $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliance
 	cp ../current/nlw/dev-bin/st-create-account-data $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliance
+	cp ../current/nlw/dev-bin/st-bootstrap-openldap $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliance
 	cp ../current/nlw/dev-bin/reports-functions.pl $(CURDIR)/debian/stconfig/usr/share/stconfig/stbin/qa/appliance
 
 binary: build install

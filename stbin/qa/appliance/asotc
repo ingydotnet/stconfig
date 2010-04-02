@@ -1,0 +1,29 @@
+# source this file to run Signals Only Testcases on the appliance
+# The test cases must come from the SELENIUM_PLAN_SERVER
+# because the environment under test will have its workspaces stripped.
+# SELENIUM_PLAN_SERVER can be a dev env or another VE
+# If $1 is provided, it is run instead of signals_only_testcases
+
+if [ "$SELENIUM_PLAN_SERVER" == "" ]; then
+    echo You must export SELENIUM_PLAN_SERVER=http://PLANSERVER:PLANPORT
+    echo in order to test this Signals Only environment
+else
+    PLAN_PAGE="signals_only_testcases"
+    [ "$1" ] && PLAN_PAGE="$1"
+    USERNAME="wikitester@ken.socialtext.net"
+    OUTFILE="$PLAN_PAGE".out
+    
+    export WIKIEMAIL=$HOSTNAME
+    export PGUSER=nlw
+    export PGDATABASE=NLW
+    
+    echo OUTFILE is $OUTFILE
+    echo WIKIEMAIL is $WIKIEMAIL
+    
+    echo PLAN_SERVER is $SELENIUM_PLAN_SERVER
+    echo PLAN_PAGE is $PLAN_PAGE
+
+    sudo -u www-data /usr/share/stconfig/stbin/run-wiki-tests --no-maximize --timeout 60000 --test-username "$USERNAME" --test-email "$USERNAME" --plan-server "$SELENIUM_PLAN_SERVER" --plan-workspace wikitests --test-server http://$HOSTNAME --plan-page "$PLAN_PAGE" >& "$OUTFILE" &
+    ln -sf "$OUTFILE"  testcases.out
+    echo RUNNING "$PLAN_PAGE"  ... tail -f testcases.out to monitor progress
+fi
