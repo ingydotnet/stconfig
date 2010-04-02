@@ -72,10 +72,16 @@ unless (%{$opts{report}} or %{$opts{json}}) {
 sub say ($);
 
 my @state_order =
-    qw/productmanagementpool inprep ready indev inqa awaitingsignoff signedoff/;
+    qw/productmanagementpool inprep ready indev inqa awaitingsignoff done/;
 
-my %tag_alias = (
-    done => 'signedoff'
+my %state_precedence;
+{
+    my $i = 1;
+    %state_precedence = map { $_ => $i++ } @state_order;
+}
+
+my %state_alias = (
+    signedoff => 'done'
 );
 my %state_tags = (
     productmanagementpool => 'p',
@@ -84,7 +90,7 @@ my %state_tags = (
     indev                 => 'D',
     inqa                  => 'Q',
     awaitingsignoff       => 'S',
-    signedoff             => '$',
+    done                  => '$',
 );
 my %state_display = (
     productmanagementpool => 'PMPool',
@@ -93,7 +99,7 @@ my %state_display = (
     indev                 => 'InDev',
     inqa                  => 'InQA',
     awaitingsignoff       => 'Signoff',
-    signedoff             => 'Done',
+    done                  => 'Done',
 );
 
 our ($pages, $stories, $now, $now_epoch);
@@ -118,6 +124,9 @@ if ($opts{json}{'flot-cfd'}) {
 if ($opts{report}{simple}) {
     simple_table();
 }
+if ($opts{report}{standup}) {
+    standup_table();
+}
 
 export_to_page($opts{'report-page'})
     if $opts{'report-page'};
@@ -134,7 +143,7 @@ sub summarize_revs {
         $tags = {
             map { $_=>1 }
             grep { $state_tags{$_} }
-            map { my $x = $tag_alias{$_}; $x ? $x : $_ }
+            map { my $x = $state_alias{$_}; $x ? $x : $_ }
             map { lc($_) }
             @$tags
         };
@@ -459,6 +468,14 @@ sub flot_cfd_struct {
     return \%datasets;
 }
 
+sub fix_tables (\$) {
+    my $input_ref = shift;
+    die "not a ref!" unless ref($input_ref);
+    my $pretty = '';
+    run(['fix-tables'], $input_ref, \$pretty, undef);
+    return $pretty;
+}
+
 {
     my $page_content;
     sub say ($) {
@@ -519,7 +536,6 @@ sub extract_stories_from_page_list {
                         $info->{last_idx}{awaitingsignoff});
         $info->{is_done} = $done ? 1 : undef;
 
-        print $story->{page_id},$/;
         $story->{stats} = $info;
         push @stories, $story;
     }
@@ -557,11 +573,36 @@ sub simple_table {
         $buf .= "\n";
     }
 
-    my $pretty;
-
-    run(['fix-tables'], \$buf, \$pretty, undef);
+    my $pretty = fix_tables $buf;
 
     say "Cumulative time spent in each state (including evenings and weekends)\n";
+    say $pretty;
+    say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
+}
+
+sub standup_table {
+    my @states = qw(indev inqa awaitingsignoff);
+
+    my $buf = "| *Task* | ";
+    $buf .= "*Sparkline* | " if $opts{spark};
+    $buf .= join(' | ', map {"*$state_display{$_}*"} @states);
+    $buf .= " | *Age* |\n";
+
+    for my $story (sort {$b->{stats}{age} <=> $a->{stats}{age}} @$stories) {
+        next if none { $story->{tags}{$_} } @states;
+
+        my $info = $story->{stats};
+        $buf .= "| [$story->{name}] |";
+        $buf .= " $info->{spark} | " if $opts{spark};
+        $buf .= " ".delta_to_string($info->{total_per_state}{$_} || 0)." |"
+            for @states;
+        $buf .= " ".delta_to_string($info->{age})." |";
+        $buf .= "\n";
+    }
+
+    my $pretty = fix_tables $buf;
+
+    say "Cumulative time spent in each state as of 8AM (including evenings and weekends)\n";
     say $pretty;
     say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
 }
