@@ -32,14 +32,15 @@ $r = get_rester(workspace => 'dev-tasks');
 $r->accept('perl_hash');
 
 our %opts = (
-    'report' => [],
-    'json' => [],
-    'cache' => 1,
-    'sot' => 1,
+    report => [],
+    json   => [],
+    cache  => 1,
+    sot    => 1,
+    start  => 0,
 );
 GetOptions(\%opts,
-    'cache!', 'simple-table!', 'flot-json!', 'report=s@', 'sot!', 'spark!',
-    'at=s'
+    'cache!', 'simple-table!', 'json=s@', 'report=s@', 'sot!', 'spark!',
+    'at=s', 'start=s'
 );
 
 my $rel_tag = $opts{release} || shift || 'chocolaterain' or die <<EOT;
@@ -51,6 +52,10 @@ Options:
     --json=X        Output the specified JSON blob.
     --no-sot        Don't use 8AM PST/PDT as "now" (the default).
     --at=X          The time to consider as "now" (overrides SOT 8AM default)
+
+Partially implemented options:
+    --start=X       The time to start counting from (default epoch-0)
+                    (Only works for --json=flot-cfd)
 
 Reports:
     simple      a wiki table with cumulative times for each story-state,
@@ -102,7 +107,7 @@ my %state_display = (
     done                  => 'Done',
 );
 
-our ($pages, $stories, $now, $now_epoch);
+our ($pages, $stories, $now, $now_epoch, $start_epoch);
 
 $now_epoch = $opts{at} ? str2time($opts{at}) : time();
 $now = DateTime->from_epoch(epoch => $now_epoch, time_zone => 'America/Vancouver');
@@ -111,6 +116,8 @@ if ($opts{sot} && !$opts{at}) {
     $now->set(hour => 8, minute => 0, second => 0);
     $now_epoch = $now->epoch;
 }
+
+$start_epoch = $opts{start} ? str2time($opts{start}) : 0;
 
 $pages = load_pages();
 $stories = extract_stories_from_page_list();
@@ -313,13 +320,6 @@ sub _heapify_story_intervals {
         }
         # make the last element end far in the future.
         $elems[-1][End] = future;
-
-        if (@elems > 2 &&
-            $elems[-2][Tags]{awaitingsignoff} &&
-            ! any { $state_tags{$_} } keys %{$elems[-1][Tags]})
-        {
-            $elems[-1][Tags]{donedone} = { $page_id=>1 };
-        }
     }
 }
 
@@ -449,22 +449,45 @@ sub flot_cfd_struct {
     #   }
     # };
 
+    my $cur_time = max $start_epoch, $slices->[0][Start];
+    my $end_time = $slices->[-1][End];
+
+    my $halfday = DateTime::Duration->new(hours => 12);
+
+    # start at 8AM SOT of the date of the first slice
+    my $dt = DateTime->from_epoch(
+        epoch => $cur_time, time_zone => 'America/Vancouver');
+    $dt->set(hour => 8, minute => 0, second => 0);
+    $cur_time = $dt->epoch;
+
     my %data = map {$_ => []} @state_order;
-    for my $slice (@$slices) {
-        my $x = $slice->[Start] * 1000;
+    my $i = 0;
+    while ($cur_time < $end_time) {
+        # find the slice containing the current time
+        while (defined $slices->[$i] and $slices->[$i][Start] < $cur_time) {
+            $i++;
+        }
+        last unless defined $slices->[$i];
+
+        # get a total for each state
+        my $slice = $slices->[$i];
+        my $x = $cur_time . '000'; # sec to msec
         for my $tag (@state_order) {
             my $y = keys %{$slice->[Tags]{$tag}};
             push @{$data{$tag}}, [$x,$y];
         }
+
+        $dt = $dt + $halfday;
+        if ($dt->hour == 7 || $dt->hour == 9) {
+            # DST changed
+            $dt->set_hour(8);
+        }
+        $cur_time = $dt->epoch;
     }
 
-    my %datasets;
-    for my $tag (@state_order) {
-        $datasets{$tag} = {
-            label => $state_display{$tag},
-            data => $data{$tag},
-        };
-    }
+    my %datasets = map {
+        $_ => { label => $state_display{$_}, data => $data{$_} }
+    } @state_order;
     return \%datasets;
 }
 
@@ -548,6 +571,7 @@ sub export_cfd_json {
     open my $fh, '>', $filename;
     print $fh encode_json($cfd);
     close $fh;
+    print "Wrote Flot.js CFD JSON to $filename.\n";
 }
 
 sub export_to_page {
