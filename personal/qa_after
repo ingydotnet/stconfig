@@ -59,6 +59,7 @@ else
     alias findceq='ps x  | grep ceqlotron | grep -v grep'
     alias findwikis='ls ~/.nlw/root/data/'
 
+    alias cdfix='cd $ST_CURRENT/nlw/lib/Socialtext/WikiFixture'
     alias cdroot='cd ~/.nlw/root'
     alias cddata='cd ~/.nlw/root/data'
     alias cdetc='cd ~/.nlw/etc'
@@ -129,8 +130,6 @@ else
     alias brqa='branches'
     alias ffx='ps auxww | grep firefox'
     alias fsel='ps auxww | grep selenium'
-
-    export SVN_COMMAND='svn'
 
     if [ -e /etc/bash_completion.d/socialtext ]; then
         source /etc/bash_completion.d/socialtext 
