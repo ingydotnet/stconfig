@@ -16,6 +16,8 @@ alias i=clear
 
 alias ack='ack --follow'
 
+alias nl1='nlwctl -1'
+
 alias ..='cd ..'
 alias ..1='cd ..'
 alias ..2='cd ../..'
