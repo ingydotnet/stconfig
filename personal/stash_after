@@ -21,3 +21,5 @@ alias grep='grep --devices=skip --binary-files=without-match'
 EMAIL="Jeremy Stashewsky <jeremy.stashewsky@socialtext.com>"
 
 export NYTPROF="file=/home/stash/nytprof/nytp.out"
+
+alias myps="ps -fH -u $USER"
