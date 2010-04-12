@@ -49,7 +49,8 @@ if (!$upgrade_to and $repo and $repo =~ m/^app(?:liance)?$/) {
     chomp $repo;
     print "Repo changed to '$repo'\n";
 }
-if ($repo and $repo =~ m/^release-*/ and !$ENV{ST_APT}) {
+my $dest_repo = $upgrade_to || $repo;
+if ($dest_repo and $dest_repo =~ m/^release-*/ and !$ENV{ST_APT}) {
     $apt_server = 'apt.socialtext.net';
     print "Using $apt_server ...\n";
 }
