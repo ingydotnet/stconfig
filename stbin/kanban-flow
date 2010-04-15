@@ -41,9 +41,12 @@ our %opts = (
 GetOptions(\%opts,
     'cache!', 'simple-table!', 'json=s@', 'report=s@', 'sot!', 'spark!',
     'at=s', 'start=s'
-);
+) or usage();
 
-my $rel_tag = $opts{release} || shift || 'chocolaterain' or die <<EOT;
+my $rel_tag = $opts{release} || shift || 'chocolaterain' or usage();
+
+sub usage {
+    die <<EOT;
 USAGE: $0 (options) releasetag
 Options:
     --no-cache      Don't use a disk cache for page history. (default: on)
@@ -66,6 +69,7 @@ Reports:
 JSON exports:
     flot-cfd    data for a flot.js-based release CFD.
 EOT
+}
 
 $opts{report} = { map {$_=>1} @{$opts{report}} };
 $opts{json} = { map {$_=>1} @{$opts{json}} };
@@ -516,29 +520,21 @@ sub fix_tables (\$) {
 sub load_pages {
     my $pages;
     my $cachefile = "cache-$rel_tag.sto";
+    unlink $cachefile unless $opts{cache};
     if (-e $cachefile) {
-        print "loading $cachefile...\n";
         $pages = Storable::retrieve($cachefile);
     }
     else {
-        print "searching for pages tagged '$rel_tag'...\n";
         my $tmp_pages = $r->get_taggedpages($rel_tag);
         $pages = [];
-        print "downloading pages...\n";
         for my $page (shuffle @$tmp_pages) {
-            print "fetching $page->{page_id}...\n";
             $page->{tags} = { map { lc($_) => 1 } @{$page->{tags}||[]} };
-            unless ($page->{tags}{story}) {
-                print "\tnot a story\n";
-                next;
-            }
+            next unless $page->{tags}{story};
             $page->{tag_history} = $r->get_taghistory($page->{page_id});
             push @$pages, $page;
         }
-        print "saving cache...\n";
         Storable::store($pages => $cachefile);
     }
-    print "done\n";
     return $pages;
 }
 
