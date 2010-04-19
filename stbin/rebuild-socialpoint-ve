@@ -48,7 +48,7 @@ run_sudo_on_ve st-admin give-accounts-admin -e devnull1@socialtext.com
 run_sudo_on_ve st-admin give-system-admin   -e devnull1@socialtext.com
 
 # Create an Account impersonator
-run_sudo_on_ve st-admin create-user -e acct-impersonator@socialtext.com -p d3vnull1
+run_sudo_on_ve st-admin create-user -e acct-impersonator@socialtext.com -p d3vnu11l
 run_sudo_on_ve st-admin add-account-impersonator --account Ryker -e acct-impersonator@socialtext.com
 
 # Enable plugins in all Accounts.
