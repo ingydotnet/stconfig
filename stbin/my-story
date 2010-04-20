@@ -10,11 +10,11 @@ my $r = get_rester(
 );
 
 $r->accept('text/plain');
+my $rester_user = $r->username;
 my @in_dev = $r->get_taggedpages('InDev');
 
 my @stories_in_dev_by_me;
 my @stories_and_devs;
-my $user = $ENV{USER};
 $r->accept('text/x.socialtext-wiki');
 for my $story_name (@in_dev) {
     my $wo = Socialtext::WikiObject->new(
@@ -47,7 +47,7 @@ for my $story_name (@in_dev) {
         $devs = $row->[1];
     }
 
-    if ($devs =~ m/\Q$user\E/) {
+    if ($devs =~ m/\Q$ENV{USER}\E/ or $devs =~ m/\Q$rester_user\E/) {
         push @stories_in_dev_by_me, $story_name;
     }
     push @stories_and_devs, "$story_name: $devs";
