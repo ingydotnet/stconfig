@@ -23,3 +23,4 @@ EMAIL="Jeremy Stashewsky <jeremy.stashewsky@socialtext.com>"
 export NYTPROF="file=/home/stash/nytprof/nytp.out"
 
 alias myps="ps -fH -u $USER"
+alias gcoall="st-git-all checkout"
