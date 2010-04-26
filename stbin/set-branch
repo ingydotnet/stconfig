@@ -133,24 +133,30 @@ sub assert_branch_exists {
     }
 }
 
+sub _show_ref_exists {
+    my $ref = shift;
+    my $dir = shift || "$src_base/socialtext";
+    local $ENV{GIT_DIR} = "$dir/.git";
+    my $rc = system("git show-ref $ref >/dev/null 2>&1");
+    return ($rc == 0);
+}
+
 sub remote_branch_exists {
     my $branch = shift;
-    return branch_exists("origin/$branch");
+    my $dir = shift;
+    return _show_ref_exists(qq{refs/remotes/origin/$branch},$dir);
 }
 
 sub branch_exists {
     my $branch = shift;
-    my $dir = shift || "$src_base/socialtext";
-    my $exists = grep { $_ =~ /\s\Q$branch\E\s*/ } `cd $dir ; git branch -a`;
-    return $exists ? 1 : 0;
+    my $dir = shift;
+    return _show_ref_exists(qq{refs/heads/$branch},$dir);
 }
 
 sub tag_exists {
-    my $branch = shift;
-    my $dir = shift || "$src_base/socialtext";
-    my $exists = grep { $_ =~ /\Q$branch\E\s*/ } `cd $dir ; git tag`;
-    $Is_tag = $exists;
-    return $exists ? 1 : 0;
+    my $tag = shift;
+    my $dir = shift;
+    return _show_ref_exists(qq{refs/tags/$tag},$dir);
 }
 
 sub git_all {
@@ -198,14 +204,12 @@ sub color_print {
 }
 
 sub branch_list {
-    my @branches = `cd $src_base/socialtext; git branch`;
+    local $ENV{GIT_DIR} = "$src_base/socialtext/.git";
+    my @branches = `git branch --no-color`;
     chomp @branches;
-    @branches = sort { 
-        (my $aname = $a) =~ s/^..//;
-        (my $bname = $b) =~ s/^..//;
-        return $aname cmp $bname;
-    } @branches;
+    @branches = sort {$a cmp $b } @branches;
     s/^\s+// for @branches;
+    s/\s+$// for @branches;
     return @branches;
 }
 
