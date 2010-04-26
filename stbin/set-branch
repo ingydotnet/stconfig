@@ -12,6 +12,14 @@ my $offline = 0;
 my $overwrite = 0;
 my $Is_tag = 0;
 
+my ($git_ver,$git_ver_maj,$git_ver_min,$git_ver_patch);
+{
+    my $ver = `git --version`;
+    chomp $ver;
+    ($git_ver,$git_ver_maj,$git_ver_min,$git_ver_patch) =
+        ($ver =~ /^.*?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?.*?$/);
+}
+
 GetOptions(
     'offline!' => \$offline,
     'overwrite!' => \$overwrite,
@@ -65,6 +73,19 @@ foreach my $repo (@repos) {
 shell_run("cd $ENV{ST_SRC_BASE}/socialtext && refresh-submodules");
 
 exit;
+
+sub have_git ($$;$$) {
+    $_[2] ||= 0;
+    $_[3] ||= 0;
+    return 1 if ($git_ver > $_[0]);
+    return if ($git_ver < $_[0]);
+    return 1 if ($git_ver_maj > $_[1]);
+    return if ($git_ver_maj < $_[1]);
+    return 1 if ($git_ver_min > $_[2]);
+    return if ($git_ver_min < $_[2]);
+    return 1 if ($git_ver_min >= $_[3]);
+    return;
+}
 
 sub update_submodules {
     my $path = shift;
@@ -211,6 +232,17 @@ sub branch_list {
     s/^\s+// for @branches;
     s/\s+$// for @branches;
     return @branches;
+}
+
+sub git_config {
+    # assumes chdir or GIT_DIR is active
+    my %config = do {
+        local $/="\0";
+        my @a = `git config -z --list`;
+        chomp @a;
+        map { split("\n",$_,2) } @a
+    };
+    return \%config;
 }
 
 sub clone_repo {
