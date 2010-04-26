@@ -274,10 +274,16 @@ sub checkout_branch {
 
     my $force = ($overwrite) ? '-f' : '';
 
-    my $repo_dir = repo_dir($repo);
-    chdir $repo_dir;
-    my $origin_branch = $Is_tag ? $branch : "origin/$branch";
-    if (!-f repo_git_dir($repo)."/refs/heads/$branch") {
+    my $dir = repo_dir($repo);
+    chdir $dir;
+
+    my $origin_branch = "origin/$branch";
+    my $has_local = branch_exists($branch,$dir);
+
+    if ($Is_tag) {
+        shell_run(qq{git checkout $force -q $branch});
+    }
+    elsif (!$has_local) {
         color_print('yellow', "... Mapping $branch to $origin_branch\n");
         shell_run(qq{git checkout $force -q --track -b $branch $origin_branch});
     }
@@ -285,6 +291,19 @@ sub checkout_branch {
         shell_run(qq{-git checkout $force -q $branch}) or
             color_print('blue', 
                 "Conflicting files? try --overwrite or fix it yourself");
+        my $config = git_config();
+        if (($config->{"branch.$branch.remote"} || '') ne 'origin' &&
+            remote_branch_exists($branch))
+        {
+            if (have_git(1,7)) {
+                color_print('yellow', "... making $branch track $origin_branch\n");
+                shell_run(qq{git branch --set-upstream $branch $origin_branch});
+            }
+            else {
+                color_print('red', "WARNING: Branch $branch isn't tracking an origin branch and therefore git-push/git-pull won't work.");
+                color_print('blue', "HINT: Edit the .git/config to fix this (or get git >= 1.7)");
+            }
+        }
     }
     chdir $src_base;
 }
