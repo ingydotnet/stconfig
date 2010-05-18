@@ -27,6 +27,7 @@ sudo apt-get install --yes libtest-harness-perl
 sudo apt-get install --yes libaccessors-perl
 sudo apt-get install --yes libtap-formatter-html-perl
 sudo apt-get install --yes libtest-http-perl
+sudo apt-get install --yes libtest-differences-perl
 
 echo INSTALLING and ENABLING all plugins for all accounts
 sudo st-appliance-install-plugin dashboard people socialcalc signals groups
