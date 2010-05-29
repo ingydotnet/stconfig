@@ -1,0 +1,143 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Socialtext::Resting::Getopt qw/get_rester/;
+use JSON::XS;
+use LWP::UserAgent;
+
+$| = 1;
+
+my $r = get_rester();
+my $page_name = shift or usage();
+
+$r->accept('perl_hash');
+
+my $page = $r->get_page($page_name);
+my $bad_user = $page->{last_editor};
+print "Looking for edits by '$bad_user' ...\n";
+print "Is this the correct user? [y]";
+yes_or_exit();
+
+$bad_user =~ s/hidden$//;
+my $user_regex = qr/^\Q$bad_user\E/;
+
+print "Grabbing the NLW login cookie ...\n";
+my $ua = create_user_agent();
+
+print "Determining this user's details ...\n";
+my $bad_userid = get_user_details($r, $page_name);
+
+print "Looking for edits of $bad_userid ...\n";
+my $activities = get_events($r, "/activities/$bad_userid");
+unless (@$activities) {
+    die "Could not find any activities for $bad_userid\n";
+}
+
+print "\nFound the following page edits:\n";
+for my $act (@$activities) {
+    my $ws = $act->{page}{workspace_name};
+    my $page_id = $act->{page}{id};
+    print "  " . $r->server . "/$ws/index.cgi?$page_id\n";
+}
+print "\nShall I revert these edits and de-activate the user? [y]";
+yes_or_exit();
+
+for my $act (@$activities) {
+    my $ws = $act->{page}{workspace_name};
+    my $page_id = $act->{page}{id};
+    print "  /$ws/?$page_id\n";
+    $r->workspace($ws);
+    my $revs = $r->get_revisions($page_id);
+    if ($revs->[-1]{last_editor} !~ $user_regex) {
+        print "   Looks like this edit was reverted already.\n";
+        next;
+    }
+    my $last_ok_rev;
+    for my $r (@$revs) {
+        last if $r->{last_editor} =~ $user_regex;
+        $last_ok_rev = $r;
+    }
+
+    unless ($last_ok_rev) {
+        print "    Could not find the last ok revision for /$ws/?$page_id\n";
+        next;
+    }
+
+    my $resp = $ua->post( $r->server . '/' . $r->workspace . '/index.cgi', {
+            action => 'revision_restore',
+            page_name => $last_ok_rev->{page_id},
+            revision_id => $last_ok_rev->{revision_id},
+        },
+    );
+    unless ($resp->code == 302) {
+        die "Couldn't restore $last_ok_rev->{page_id}! " . $resp->code;
+    }
+    print "    Restored revision $last_ok_rev->{revision_id} by $last_ok_rev->{last_editor}\n";
+}
+
+print "\nDe-activating user...\n";
+my $resp = $ua->post( $r->server . '/nlw/control/submit/deactivate_user', {
+        user_id => $bad_userid,
+    },
+);
+if ($resp->code != 302) {
+    print "  Failed to de-activate $bad_userid: " . $resp->status_line;
+}
+else {
+    print "  De-activated $bad_userid!\n";
+}
+
+exit;
+
+
+sub usage {
+    die <<EOT;
+$0 [--workspace foo] page_name
+EOT
+}
+
+sub get_events {
+    my $r = shift;
+    my $uri_part = shift;
+    my $uri = '/data/events' . $uri_part;
+    my ( $status, $content, $response ) = $r->_request(
+        uri    => $uri,
+        method => 'GET',
+        accept => 'application/json',
+    );
+    die "Could not get $uri: $status ($content)" unless $status == 200;
+    return decode_json($content);
+}
+
+sub create_user_agent {
+    my $ua = LWP::UserAgent->new;
+    $ua->cookie_jar({});
+    my $resp = $ua->post($r->server . '/nlw/submit/login', {
+            username => $r->username,
+            password => $r->password,
+        },
+    );
+    die "Could not login!" unless $resp->code == 302;
+    return $ua;
+}
+
+sub yes_or_exit {
+    my $ans = <STDIN>;
+    chomp $ans;
+    exit unless $ans eq '' or $ans =~ m/^y/i;
+}
+
+sub get_user_details {
+    my $r = shift;
+    my $ws = $r->workspace;
+    my $page_name = shift;
+
+    my $events = get_events($r, "?page.workspace_name=$ws;page.workspace_id=$page_name;action=edit_save");
+    my $user_id = $events->[0]{actor}{id};
+
+    unless ($user_id) {
+        print "Could not find the user that spammed /$ws/?$page_name\n";
+        print "Perhaps the user was deactivated?\n";
+        exit;
+    }
+}
