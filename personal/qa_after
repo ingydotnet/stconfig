@@ -2,6 +2,7 @@
 
 # functions and aliases for dev env and appliance
 
+    alias walltime='ps -eo pid,etime | grep '
     alias releaseme="export ST_APT=apt.socialtext.net"
     alias unreleaseme="unset ST_APT"
     alias benchme="st-config set benchmark_mode 1"
