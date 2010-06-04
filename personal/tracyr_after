@@ -7,3 +7,6 @@ COLOR_REPO="\[\033[0;1;33;44m\]"
 COLOR_WORKDIR="\[\033[0;1;33;42m\]"
 
 PROMPT_COMMAND=_git_prompt_color
+
+# Re-alias "fdefs" so it always runs in benchmark_mode
+alias fdefs='fresh-dev-env-from-scratch -b'
