@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+# SSL Setup - run as root
+
+servername=$HOSTNAME
+
+openssl genrsa 1024 > $servername.key
+openssl req -new -x509 -nodes -sha1 -days 1825 -key $servername.key -subj "/C=US/ST=CA/L=Palo Alto/O=Socialtext/CN=$servername/" > $servername.crt
+cp $servername.key /etc/ssl/private
+cp $servername.crt /etc/ssl/certs
+st-config set ssl_only 1
+dpkg-reconfigure st-webserver

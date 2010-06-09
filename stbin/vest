@@ -5,6 +5,7 @@ use Getopt::Long;
 use lib "$ENV{ST_CURRENT}/nlw/lib";
 use Socialtext::System qw/shell_run/;
 
+my $user_factories = $ENV{ST_USER_FACTORIES} || 'LDAP:ST-ldap;Default';
 my $test_script = $ENV{ST_TEST_SCRIPT} || '/usr/share/stconfig/stbin/qa/appliance/st-appliance-testme';
 my $ve_host = $ENV{ST_VE_HOST} || 'zircon.socialtext.net';
 my $ve_name = $ENV{ST_VE_NAME};
@@ -12,6 +13,8 @@ my $test_case;
 my $repo = 'appliance';
 my $upgrade_to;
 my $plugins;
+my $ssl;
+my $ssl_only;
 my $apt_server = $ENV{ST_APT} || 'dev-apt.socialtext.net';
 my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
@@ -35,7 +38,11 @@ GetOptions(
     'staging-db-only' => \$staging_db_only,
     'staging-reports-db' => \$staging_reports_db,
     'staging-reports-db-only' => \$staging_reports_db_only,
-) or usage ();
+    'ssl' => \$ssl,
+    'ssl-only' => \$ssl_only,
+);
+
+usage('ve-name is mandatory!') unless $ve_name;
 
 if ($ve_name =~ m/^qa\d$/) {
     $ve_host =~ s/^zircon/willemite/;
@@ -49,6 +56,7 @@ if (!$upgrade_to and $repo and $repo =~ m/^app(?:liance)?$/) {
     chomp $repo;
     print "Repo changed to '$repo'\n";
 }
+
 my $dest_repo = $upgrade_to || $repo;
 if ($dest_repo and $dest_repo =~ m/^release-*/ and !$ENV{ST_APT}) {
     $apt_server = 'apt.socialtext.net';
@@ -60,9 +68,9 @@ $apt_server =~ s#^https?://##;
 if ($test_data_only)  { install_test_data();  exit 0 }
 if ($staging_db_only) { install_staging_db(); exit 0 }
 if ($staging_reports_db_only) { install_staging_reports_db(); exit 0 }
+if ($ssl_only) { install_ssl(); exit 0 }
 
-usage('repo or upgrade-to is mandatory!') unless $repo or $upgrade_to;
-usage('ve-name is mandatory!') unless $ve_name;
+usage('-r (repo) or -u (upgrade-to) is mandatory!') unless $repo or $upgrade_to;
 
 if ($upgrade_to) {
     warn "USING $apt_server to upgrade (set ST_APT env var to change this)\n";
@@ -133,6 +141,7 @@ eval { run_tests() }; warn $@ if $@;
 install_plugins() if $plugins;
 install_staging_db() if $staging_db;
 install_staging_reports_db() if $staging_reports_db;
+install_ssl() if $ssl;
 exec_on_ve("$test_script $test_case") if $test_case;
 
 exit;
@@ -164,6 +173,8 @@ Options:
   -c --case       Name of the testcase to run using '$test_script'
   --staging-db    Grab the DB off of staging in set it up on ur VE
   --staging-db-only Same as above but no VE setup.
+  --ssl           create SSL certificates and configure SSL
+  --ssl-only      only create SSL certificates and configure SSL
   
 Passwordless SSH
   If you'd like an SSH key set up on the VE, commit a public 
@@ -210,6 +221,7 @@ sub install_staging_db {
         q{/etc/init.d/apache-perl stop},
         q{/etc/init.d/ceqlotron stop},
         q{/etc/init.d/postgresql-8.1 restart},
+        q{st-db escalate_privs},
         q{st-db dropdb -s socialtext},
         q{su - postgres -c "psql -q -f /tmp/socialtext.sql"},
         q{perl -pi -e "s/dc_eximconfig_configtype=.*$/dc_eximconfig_configtype=local/" /etc/exim4/update-exim4.conf.conf},
@@ -217,6 +229,7 @@ sub install_staging_db {
         q{/etc/init.d/exim4 restart},
         q{/etc/init.d/ceqlotron start},
         q{/etc/init.d/apache-perl start},
+        qq{st-config set user_factories \"${user_factories}\"},
     );
 }
 
@@ -237,3 +250,17 @@ sub install_staging_reports_db {
         q{/etc/init.d/apache-perl start},
     );
 }
+
+sub install_ssl {
+
+    # set user_factories has to happen after SSL is set up
+
+    exec_on_ve(
+        q{/usr/share/stconfig/stbin/qa/appliance/st-ssl-only},
+        q{/etc/init.d/nginx restart},
+        q{/etc/init.d/apache-perl restart},
+        qq{st-config set user_factories \"${user_factories}\"},
+    );
+
+}
+
