@@ -1,3 +1,9 @@
+stconfig (20100609-1276121448) socialtext; urgency=low
+
+  * Removed control from st-repo-list
+
+ -- Jeremy Stashewsky <stash@topaz.socialtext.net>  Wed,  9 Jun 2010 15:10:28 -0700
+
 stconfig (20100405-1270498919) socialtext; urgency=low
 
   * new upstream version
