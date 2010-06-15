@@ -3,6 +3,7 @@ alias screen='TERM=screen screen'
 alias statme='netstat -lan | grep 5435'
 alias tapme='tapout '
 alias envme='env | grep -i selenium | grep -iv haxor'
+alias backup-staging='echo "Usage: backup-staging HH:00" ; echo "sudo -u www-data /usr/sbin/st-appliance-backup" | sudo at '
 
 if [ -e $ST_SRC_BASE/stconfig/personal/qa_after ]; then
     source $ST_SRC_BASE/stconfig/personal/qa_after
