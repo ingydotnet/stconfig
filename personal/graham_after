@@ -20,8 +20,8 @@ export PERL5LIB="/home/graham/perl5/lib/perl5:/home/graham/perl5/lib/perl5/x86_6
 export PATH="/home/graham/perl5/bin:$PATH"
 
 # add personal "st-build-tools" checkout to @INC and $PATH
-export PERL5LIB=/home/graham/src/st/st-build-tools/lib:$PERL5LIB
-export PATH=/home/graham/src/st/st-build-tools/bin:$PATH
+#export PERL5LIB=/home/graham/src/st/st-build-tools/lib:$PERL5LIB
+#export PATH=/home/graham/src/st/st-build-tools/bin:$PATH
 
 # add ~/bin to path
 export PATH=/home/graham/bin:$PATH
