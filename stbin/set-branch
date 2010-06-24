@@ -8,8 +8,46 @@ use English;
 use List::Util qw(first);
 use Getopt::Long;
 
+my $git_base = $ENV{ST_GIT};
+my $src_base = $ENV{ST_SRC_BASE};
+my $cache_base = $ENV{ST_GIT_CACHE} || '/var/cache/git/repos/socialtext';
+
+sub usage {
+    my $i = 1;
+    my @branches = map { sprintf('  %2d - %s', $i++, $_) } branch_list();
+    
+    local $LIST_SEPARATOR = "\n";
+    die <<EOT;
+USAGE: set-branch [--refresh] <branch>
+
+Pulls code from github for our main repositories and allows you to change
+branches.
+
+Code will be placed into ST_SRC_BASE (currently: $src_base)
+
+Basic options:
+    --refresh   pull latest changes from github, branch stays the same
+                (tool alias: refresh-branch or rb)
+    --overwrite use a clean checkout, replacing existing (cannot be combined
+                with --refresh)
+    --quiet     be a bit less noisy
+
+Advanced options:
+    --offline   don't use github servers; use local git repositories only
+    --repack    repack your local git repos to use a shared cache
+                (located at $cache_base, use ST_GIT_CACHE to override)
+
+Existing branches:
+@branches
+EOT
+}
+
+
 my $offline = 0;
 my $overwrite = 0;
+my $refresh_mode = 0;
+my $repack_mode = 0;
+my $quiet = 0;
 my $Is_tag = 0;
 
 my ($git_ver,$git_ver_maj,$git_ver_min,$git_ver_patch);
@@ -23,6 +61,9 @@ my ($git_ver,$git_ver_maj,$git_ver_min,$git_ver_patch);
 GetOptions(
     'offline!' => \$offline,
     'overwrite!' => \$overwrite,
+    'refresh' => \$refresh_mode,
+    'quiet' => \$quiet,
+    'repack' => \$repack_mode,
 );
 
 my $branch = shift || '';
@@ -34,22 +75,23 @@ if ($branch eq 'trunk') {
     $branch = 'master';
 }
 
-my $git_base = $ENV{ST_GIT};
-my $src_base = $ENV{ST_SRC_BASE};
 unless (-d $src_base) {
     mkpath $src_base;
+    $refresh_mode = 0;
 }
 my @repos = (split /\s+/,`st-repo-list`);
 chomp @repos;
 
 $branch = num_to_name($branch) if $branch =~ m/^\d+$/;
-usage() unless $branch;
+usage() unless ($branch or $refresh_mode);
 $branch =~ s#^tags/##;
 
 chdir $src_base;
 
 unless (-d 'socialtext') {
     clone_master();
+    $refresh_mode = 0;
+    $branch = 'master';
 }
 
 # make sure that we've got the sub repos set up
@@ -58,16 +100,44 @@ foreach my $repo (@repos) {
     clone_repo($repo) unless -d repo_git_dir($repo);
 }
 
-assert_branch_exists($branch);
-
-# color_print('blue', "Stashing local modifications on your current branch\n");
-# git_all(qq{\@stash save 'auto-stash for set-branch'});
-
 git_all('@-checkout .gitignore nlw/.gitignore >/dev/null || true');
 
-foreach my $repo (@repos) {
-    color_print('blue', "Setting working copy of $repo to $branch\n");
-    checkout_branch($repo, $branch);
+if ($refresh_mode) {
+    shell_run('st-git-all '. ($quiet ? '@' : '') . 'pull --rebase');
+}
+else {
+    assert_branch_exists($branch);
+    foreach my $repo (@repos) {
+        $quiet or color_print('blue', "Setting working copy of $repo to $branch\n");
+        checkout_branch($repo, $branch);
+    }
+}
+
+if ($repack_mode) {
+    unless (-d $cache_base && -r _) {
+        color_print('red', "Cannot locate git cache, expected it to be at $cache_base\n");
+        exit 1;
+    }
+    foreach my $repo (@repos) {
+        my $dir = repo_dir($repo);
+        next if -e "$dir/.git/objects/info/alternates";
+        my $cache_dir = "$cache_base/$repo.git";
+        unless (-d $cache_dir && -r _) {
+            color_print('red', "Cache dir $cache_dir isn't readable");
+            exit 1;
+        }
+
+        chdir $dir;
+
+        $quiet or color_print('blue', "Repacking $dir to use cache $cache_dir\n");
+        set_alternates($dir, $cache_dir);
+        my $before = `du -sh .git`;
+        $before =~ s/\s.+$//sm;
+        shell_run("git repack -l -a -d");
+        my $after = `du -sh .git`;
+        $after =~ s/\s.+$//sm;
+        color_print('green', "... done, before: $before, after: $after\n");
+    }
 }
 
 shell_run("cd $ENV{ST_SRC_BASE}/socialtext && refresh-submodules");
@@ -119,31 +189,6 @@ sub update_submodules {
          chdir $path;
     }
 }
-
-color_print('blue', 
-            "Re-applying previously stashed modifications for $branch\n");
-foreach my $repo (@repos) {
-    my $repo_dir = repo_dir($repo);
-    chdir $repo_dir;
-
-    my $latest = first { /On \Q$branch\E: auto-stash/ } `git stash list`;
-    next unless $latest;
-    $latest =~ s/:.+//s;
-
-    my $rc = shell_run(qq{-git stash apply --index $latest >/dev/null});
-    if ($rc) {
-        color_print('red', "Failed to apply auto-stash $latest in $repo;".
-                           "inspect manually\n");
-    }
-    else {
-        shell_run(qq{git stash drop $latest >/dev/null});
-    }
-}
-
-chdir "$src_base/socialtext/nlw";
-color_print('green', "Done!\n");
-
-exit;
 
 sub assert_branch_exists {
     # check if the branch exists, exit if not
@@ -204,19 +249,6 @@ sub num_to_name {
     return $branches[$num];
 }
 
-sub usage {
-    my $i = 1;
-    my @branches = map { sprintf('  %2d - %s', $i++, $_) } branch_list();
-    
-    local $LIST_SEPARATOR = "\n";
-    die <<EOT;
-USAGE: set-branch <branch>
-
-Existing branches:
-@branches
-EOT
-}
-
 sub color_print {
     my $color = shift;
     my $msg = shift;
@@ -254,8 +286,17 @@ sub clone_repo {
         exit 1;
     }
 
-    color_print('blue', "Cloning $repo from GitHub to $dir");
-    shell_run(qq{git clone $git_base/$repo.git $dir});
+    my $cmd = 'clone';
+    my $cache_dir = "/var/cache/git/repos/socialtext/$repo.git";
+    if (-d $cache_dir && -r _) {
+        $cmd .= " --reference $cache_dir";
+        $quiet or color_print('blue', "Cloning $repo from GitHub to $dir, using local cache $cache_dir");
+    }
+    else {
+        $quiet or color_print('blue', "Cloning $repo from GitHub to $dir");
+    }
+
+    shell_run(qq{git $cmd $git_base/$repo.git $dir});
 }
 
 sub repo_dir {
@@ -284,24 +325,24 @@ sub checkout_branch {
         shell_run(qq{git checkout $force -q $branch});
     }
     elsif (!$has_local) {
-        color_print('yellow', "... Mapping $branch to $origin_branch\n");
+        $quiet or color_print('yellow', "... Mapping $branch to $origin_branch\n");
         shell_run(qq{git checkout $force -q --track -b $branch $origin_branch});
     }
     else {
         shell_run(qq{-git checkout $force -q $branch}) or
-            color_print('blue', 
+            color_print('red', 
                 "Conflicting files? try --overwrite or fix it yourself");
         my $config = git_config();
         if (($config->{"branch.$branch.remote"} || '') ne 'origin' &&
             remote_branch_exists($branch))
         {
             if (have_git(1,7)) {
-                color_print('yellow', "... making $branch track $origin_branch\n");
+                $quiet or color_print('yellow', "... making $branch track $origin_branch\n");
                 shell_run(qq{git branch --set-upstream $branch $origin_branch});
             }
             else {
                 color_print('red', "WARNING: Branch $branch isn't tracking an origin branch and therefore git-push/git-pull won't work.");
-                color_print('blue', "HINT: Edit the .git/config to fix this (or get git >= 1.7)");
+                $quiet or color_print('blue', "HINT: Edit the .git/config to fix this (or get git >= 1.7)");
             }
         }
     }
@@ -309,7 +350,7 @@ sub checkout_branch {
 }
 
 sub clone_master {
-    color_print('blue', "Setting up master repo from GitHub...");
+    $quiet or color_print('blue', "Setting up master repo from GitHub...");
 
     clone_repo('socialtext');
 
@@ -317,4 +358,12 @@ sub clone_master {
         assert_branch_exists($branch);
         checkout_branch('socialtext', $branch);
     }
+}
+
+sub set_alternates {
+    my ($dir, $cache_dir) = @_;
+    open my $alts, '>', "$dir/.git/objects/info/alternates"
+        or die "can't open alternates file: $!";
+    print $alts "$cache_dir/objects/\n";
+    close $alts;
 }
