@@ -1,3 +1,7 @@
 #!/bin/bash
 UID=$(id -u)
-tail -f /var/log/nlw.log | grep "\[$UID\]"
+if [ -e $HOME/.nlw/log/nlw.log ]; then
+    tail -f $HOME/.nlw/log/nlw.log
+else
+    tail -f /var/log/nlw.log | grep "\[$UID\]"
+fi
