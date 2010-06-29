@@ -20,7 +20,7 @@ my $staging_host = $ENV{ST_STAGING_HOST} || 'www2.socialtext.net';
 my $arch = 'amd64';
 my $wipe_it = 0;
 my ($test_data, $test_data_only, $staging_db, $staging_db_only,
-    $staging_reports_db, $staging_reports_db_only, $signals,
+    $staging_reports_db, $staging_reports_db_only, $signals, $help
 );
 
 GetOptions(
@@ -40,8 +40,10 @@ GetOptions(
     'staging-reports-db-only' => \$staging_reports_db_only,
     'ssl' => \$ssl,
     'ssl-only' => \$ssl_only,
+    'help' => \$help,
 );
 
+usage() if $help;
 usage('ve-name is mandatory!') unless $ve_name;
 
 if ($ve_name =~ m/^qa\d$/) {
