@@ -5,3 +5,9 @@ PROMPT_COMMAND=_git_prompt_color
 
 alias wikrad='TERM=xterm-color wikrad'
 alias dtrad='TERM=xterm-color w2rad -w dev-tasks'
+
+# enable local perl5 dir. Thanks, http://search.cpan.org/~apeiron/local-lib/
+export MODULEBUILDRC="/home/gwachob/perl5/.modulebuildrc"
+export PERL_MM_OPT="INSTALL_BASE=/home/gwachob/perl5"
+export PERL5LIB="/home/gwachob/perl5/lib/perl5:/home/gwachob/perl5/lib/perl5/x86_64-linux-gnu-thread-multi"
+export PATH="/home/gwachob/perl5/bin:$PATH"
