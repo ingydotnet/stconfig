@@ -1,5 +1,5 @@
 
-alias screen='TERM=screen screen'
+alias screen='TERM=screen screen -U '
 alias statme='netstat -lan | grep 5435'
 alias tapme='tapout '
 alias envme='env | grep -i selenium | grep -iv haxor'
