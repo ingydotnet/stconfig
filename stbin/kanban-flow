@@ -580,8 +580,12 @@ sub export_to_page {
 sub simple_table {
     my $buf = "| *Task* | ";
     $buf .= "*Sparkline* | " if $opts{spark};
-    $buf .= join(' | ', map {"*$state_display{$_}*"} @state_order);
-    $buf .= " | *Age* |\n";
+    $buf .= join(' | ', map {"*$state_display{$_}*"} @state_order) . " |";
+    #$buf .= " *Age* |";
+    $buf .= " *DevAt* | *DoneAt* |";
+    $buf .= "\n";
+
+    my $first_start = future;
 
     for my $story (sort {$b->{stats}{age} <=> $a->{stats}{age}} @$stories) {
         my $info = $story->{stats};
@@ -589,12 +593,37 @@ sub simple_table {
         $buf .= " $info->{spark} | " if $opts{spark};
         $buf .= " ".delta_to_string($info->{total_per_state}{$_} || 0)." |"
             for @state_order;
-        $buf .= " ".delta_to_string($info->{age})." |";
+        #$buf .= " ".delta_to_string($info->{age})." |";
+
+        my $start_dev_idx = $info->{first_idx}{indev};
+        if (defined $start_dev_idx) {
+            my $start_dev = $info->{states}[$start_dev_idx]{at};
+            $first_start = $start_dev if $start_dev < $first_start;
+            my (undef,undef,undef,$mday,$mon) = localtime($start_dev);
+            $mon++;
+            $buf .= " $mon/$mday |";
+        }
+        else {
+            $buf .= " |";
+        }
+
+        my $done_idx = $info->{last_idx}{done};
+        if (defined $done_idx) {
+            my $done_at = $info->{states}[$done_idx]{at};
+            my (undef,undef,undef,$mday,$mon) = localtime($done_at);
+            $mon++;
+            $buf .= " $mon/$mday |";
+        }
+        else {
+            $buf .= " |";
+        }
+
         $buf .= "\n";
     }
 
     my $pretty = fix_tables $buf;
 
+    say "Started ".localtime($first_start)."\n";
     say "Cumulative time spent in each state (including evenings and weekends)\n";
     say $pretty;
     say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
