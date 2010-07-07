@@ -1,5 +1,5 @@
 #!/bin/zsh
 source ~/.aliases-common
-for n in mv cp man svn; do alias $n="nocorrect $n"; done
+for n in mv cp man svn jsmake; do alias $n="nocorrect $n"; done
 alias vz='vim ~/.zshrc; source ~/.zshrc'
 alias find='noglob find'
