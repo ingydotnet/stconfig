@@ -140,7 +140,7 @@ else {
 
 install_test_data() if $test_data;
 eval { run_tests() }; warn $@ if $@;
-install_plugins() if $plugins;
+install_plugins();
 install_staging_db() if $staging_db;
 install_staging_reports_db() if $staging_reports_db;
 install_ssl() if $ssl;
@@ -194,7 +194,7 @@ sub exec_on_ve {
 sub install_plugins {
     exec_on_ve( 
         'st-appliance-install-plugin people dashboard socialcalc agile',
-        'st-admin enable-plugin --all-accounts --plugin people',
+        'st-admin enable-plugin --all-accounts --plugin push',
     );
 }
 
