@@ -87,6 +87,8 @@ while (<>) {
     if (/Loading test plan Test Case: (.*)\.\.\./i
             or
         /comment: STARTING: Test Case: (.*)/i
+            or 
+        /Including wikitest commands from \[(.*)\]/i
     ) {
         $seen_test_case{$1} = 1;
         start_test("$1$suffix");
