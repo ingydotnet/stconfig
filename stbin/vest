@@ -194,7 +194,6 @@ sub exec_on_ve {
 sub install_plugins {
     exec_on_ve( 
         'st-appliance-install-plugin people dashboard socialcalc agile',
-        'st-admin enable-plugin --all-accounts --plugin push',
     );
 }
 
