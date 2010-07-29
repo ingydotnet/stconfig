@@ -43,7 +43,7 @@ GetOptions(\%opts,
     'at=s', 'start=s'
 ) or usage();
 
-my $rel_tag = $opts{release} || shift || 'chocolaterain' or usage();
+my $rel_tag = $opts{release} || shift || 'ftw' or usage();
 
 sub usage {
     die <<EOT;
@@ -116,8 +116,8 @@ our ($pages, $stories, $now, $now_epoch, $start_epoch);
 $now_epoch = $opts{at} ? str2time($opts{at}) : time();
 $now = DateTime->from_epoch(epoch => $now_epoch, time_zone => 'America/Vancouver');
 if ($opts{sot} && !$opts{at}) {
-    # use 8AM SOT as the current time.
-    $now->set(hour => 8, minute => 0, second => 0);
+    # use 9:50AM SOT as the current time.
+    $now->set(hour => 9, minute => 50, second => 0);
     $now_epoch = $now->epoch;
 }
 
@@ -137,6 +137,9 @@ if ($opts{report}{simple}) {
 }
 if ($opts{report}{standup}) {
     standup_table();
+}
+if ($opts{report}{standup2}) {
+    standup_table2();
 }
 
 export_to_page($opts{'report-page'})
@@ -246,22 +249,16 @@ sub summarize_revs {
             @state_flow;
 
     my (%first, %last);
-    my (%before_dur, %after_dur);
+    my (%after_last);
     for my $t (@state_order) {
         $first{$t} = firstidx { $_->{tags}{$t} } @state_flow;
         $last{$t}  =  lastidx { $_->{tags}{$t} } @state_flow;
         delete $first{$t} if $first{$t} == -1;
         delete $last{$t} if $last{$t} == -1;
 
-        my ($before, $after);
-        if ($first{$t}) {
-            # duration before first tag instance
-            $before_dur{$t} += $_->{dur}
-                for @state_flow[0 .. $first{$t}-1];
-        }
         if ($last{$t} && $last{$t} < $#state_flow) {
             # duration after last tag instance
-            $after_dur{$t} += $_->{dur}
+            $after_last{$t} += $_->{dur}
                 for @state_flow[$last{$t}+1 .. $#state_flow];
         }
     }
@@ -272,8 +269,7 @@ sub summarize_revs {
         states => \@state_flow,
         first_idx => \%first,
         last_idx => \%last,
-        dur_before_first => \%before_dur,
-        dur_after_last => \%after_dur,
+        dur_after_last => \%after_last,
         total_per_state => \%total_per_state,
         age => $story_age,
     };
@@ -547,8 +543,11 @@ sub extract_stories_from_page_list {
             next;
         }
 
-        $info->{spark} = '`' . join('',
-            map { $state_tags{$_->{state}} || '-' } @{$info->{states}}) . '`';
+        if ($opts{spark}) {
+            $info->{spark} = '`' . join('',
+                map { $state_tags{$_->{state}} || '-' }
+                @{$info->{states}}) . '`';
+        }
 
         my $done = ($info->{states}[-1]{state} eq 'signedoff' or
                     $info->{states}[-1]{state} eq '' &&
@@ -651,7 +650,46 @@ sub standup_table {
 
     my $pretty = fix_tables $buf;
 
-    say "Cumulative time spent in each state as of 8AM (including evenings and weekends)\n";
+    say "Cumulative time spent in each state as of 9:50AM (including evenings and weekends)\n";
+    say $pretty;
+    say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
+}
+
+sub standup_table2 {
+    my @states = qw(indev inqa awaitingsignoff);
+
+    my $buf = "| *Task* | ";
+    $buf .= " *Sparkline* | " if $opts{spark};
+    $buf .= join(' | ', map {"*$state_display{$_}*"} @states);
+    $buf .= " | *Notes* |\n";
+
+    my @sorted = map { $_->[1] } # de-schwartzian
+        sort { $a->[0] <=> $b->[0] }
+        map { 
+            my $idx = $_->{stats}{first_idx}{indev};
+            my $started = defined $idx ? $_->{stats}{states}[$idx]{at} : -1;
+            [ $started, $_ ]
+        } # schwartzian
+        @$stories;
+
+    for my $story (@sorted) {
+        next if none { $story->{tags}{$_} } @states;
+
+        my $info = $story->{stats};
+        $buf .= "| [$story->{name}] |";
+        $buf .= " $info->{spark} | " if $opts{spark};
+        for my $state (@states) {
+            my $tagged = $story->{tags}{$state};
+            $buf .= $tagged ? " *" : " ";
+            $buf .= delta_to_string($info->{total_per_state}{$state} || 0);
+            $buf .= $tagged ? "* |" : " |";
+        }
+        $buf .= "\n";
+    }
+
+    my $pretty = fix_tables $buf;
+
+    say "Cumulative time spent in each state as of 9:50AM (including evenings and weekends)\n";
     say $pretty;
     say "\n(Sparkline key: p=PMPool, P=InPrep, R=Ready, D=InDev, Q=InQA, S=AwaitingSignoff, dash for all other states)\n" if $opts{spark};
 }
