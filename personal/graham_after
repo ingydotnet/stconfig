@@ -1,6 +1,7 @@
 # aliases
 alias dir='ls -l'
 alias cls='clear'
+alias vimfailed='vim $(st-prove --dry --state=failed)'
 
 # ST overrides
 alias fdefs='fresh-dev-env-from-scratch -wbmp'
