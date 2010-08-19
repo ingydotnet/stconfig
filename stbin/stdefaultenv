@@ -51,6 +51,7 @@ if ($ENV{PATH} !~ /stdefaultenv-done/) {
       ~/stbin
       ~/bin
       ~/local/bin
+      /opt/vim/bin
       /usr/local/bin
       $ST_CURRENT/nlw/bin
       $ST_CURRENT/nlw/dev-bin
