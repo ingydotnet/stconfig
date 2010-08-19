@@ -102,8 +102,9 @@ sudo chmod 666 /var/cache/socialtext/logreader/*
 echo "Enabling email"
 sudo st-email enable
 
-echo "POPULATING reports DB"
-echo "CTRL-C to abort and finish wikitest installation"
-sudo st-populate-reports-db
+echo "NO LONGER POPULATING reports DB"
+#echo "POPULATING reports DB"
+#echo "CTRL-C to abort and finish wikitest installation"
+#sudo st-populate-reports-db
 
 echo "DONE"
