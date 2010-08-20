@@ -54,8 +54,12 @@ if [ $FRESHDEV ]; then
 
     $NLW_DEVBIN/st-socialcalc enable
 
-    echo Populating reports DB
-    $NLW_DEVBIN/st-populate-reports-db
+    echo No longer Populating reports DB
+    #$NLW_DEVBIN/st-populate-reports-db
+
+    echo Importing latest help wiki
+    $NLW_BIN/st-admin delete-workspace --w help-en --no-export
+    $NLW_BIN/st-admin import-workspace --t $ST_CURRENT/nlw/share/l10n/help/help-en.tar.gz
 fi
 
 cd $ST_CURRENT
