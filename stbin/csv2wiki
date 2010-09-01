@@ -1,0 +1,8 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Text::CSV_XS;
+my $csv = Text::CSV_XS->new({ binary => 1, eol => $/ });
+while (my $row = $csv->getline (*STDIN)) {
+    print join('|','',@$row,''),$/;
+}
