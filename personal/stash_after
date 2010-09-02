@@ -21,6 +21,8 @@ else
 fi
 
 alias gun='git reset HEAD'
+alias glm='git ls-files --exclude-standard -m'
+alias glmall='st-git-all -ls-files --exclude-standard -m'
 
 alias grep='grep --devices=skip --binary-files=without-match'
 
