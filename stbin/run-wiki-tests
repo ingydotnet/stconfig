@@ -15,6 +15,7 @@ use Getopt::Long;
 use Test::More;
 use Sys::Hostname qw/hostname/;
 use POSIX qw(strftime);
+use JSON::XS qw/encode_json/;
 
 our $VERSION = 1.0;
 
@@ -39,6 +40,7 @@ my $maximize        = 0;
 
 my $version;
 my $verbose;
+my $sauce_enabled;
 my $time_out        = '30000';
 my $fake_content_file;
 my $perf_summary;
@@ -58,7 +60,23 @@ GetOptions(
     'verbose'           => \$verbose,
     'version'           => \$version,
     'perf-summary'      => \$perf_summary,
+    'sauce-enabled'     => \$sauce_enabled,
 ) or usage();
+
+if ($ENV{sauce_enabled} || $sauce_enabled) {
+    $ENV{selenium_host} = 'saucelabs.com';
+    $ENV{selenium_port} = '4444';
+    $ENV{selenium_browser} = encode_json({
+        username     => ($ENV{sauce_username} || die "Please set the 'sauce_username' environment variable first.\n"),
+        'access-key' => ($ENV{sauce_access_key} || die "Please set the 'sauce_access_key' environment variable first.\n"),
+        os           => (($ENV{sauce_os} || '' =~ /linux/) ? 'Linux' : "Windows 2003"),
+        browser      => (($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/ ? $1 : 'firefox'),
+        'job-name'   => "$test_server - ".($fake_content_file || $plan_page),
+        ($ENV{sauce_browser_version} ? (
+            'browser-version' => $ENV{sauce_browser_version},
+        ) : ()),
+    });
+}
 
 # Add current branch's lib to our include path
 my $st_admin = qx(which st-admin);
@@ -230,6 +248,8 @@ Options:
  --version              Show version information
  --nomaximize           Don't remove the selenium-rc frame in the browser
  --perf-summary         Output a summary of the performance timings
+ --sauce-enabled        Run the test with Selenium hosted by Sauce Labs
+                        Default: Value of the "sauce_enabled" environment variable
 
 Environment Variables:
   selenium_host            => machine running the Selenium RC server
@@ -237,6 +257,14 @@ Environment Variables:
   selenium_browser         => browser string to pass to server
   selenium_client_platform => platform running NLW (linux)
   selenium_server_platform => platform running Selenium RC server [linux|windows|osx]
+
+Environment Variables (--sauce only):
+  sauce_username           => user name of the Sauce Labs account
+  sauce_access_key         => access key of the Sauce Labs account
+  sauce_browser            => browser type (defaults to \$ENV{selenium_browser})
+  sauce_browser_version    => browser version (defaults to latest version)
+  sauce_os                 => operating system (defaults to "Windows 2003")
+  sauce_enabled            => if true, always run tests with --sauce-enabled
 EOT
     exit -1;
 }
