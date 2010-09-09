@@ -52,12 +52,9 @@ perl -e '
             $lineno++;
             next;
         }
-        if (s/^\+//) {
+        if (s/^\+ //) {
             $lineno++;
             chomp;
-            # if (/\s$/) {
-            #     bad_line("trailing whitespace", $_);
-            # }
             if (/^\s* \t/) {
                 bad_line("indent SP followed by a TAB", $_);
             }
@@ -65,10 +62,13 @@ perl -e '
                 bad_line("unresolved merge conflict", $_);
             }
 
+            if (/^\s+warn\b/) {
+                bad_line(qq{Indented "warn" is suspicious}, $_);
+            }
             if (/^\s+use XXX/) {
                 bad_line(qq{Indented "use XXX" is suspicious}, $_);
             }
-            if (/(?<!#).*(?:WWW|XXX|YYY|ZZZ)/) {
+            if (/(?:WWW|XXX|YYY|ZZZ)\(/) {
                 bad_line(qq{"use XXX"-style warning is suspicious}, $_);
             }
 
