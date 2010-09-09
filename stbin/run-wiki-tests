@@ -271,6 +271,7 @@ Environment Variables:
   selenium_browser         => browser string to pass to server
   selenium_client_platform => platform running NLW (linux)
   selenium_server_platform => platform running Selenium RC server [linux|windows|osx]
+  selenium_var_foo=bar     => pass variable named foo with value bar to test
 
 Environment Variables (--sauce only):
   sauce_username           => user name of the Sauce Labs account
