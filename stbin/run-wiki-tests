@@ -37,6 +37,7 @@ my $test_username   = 'devnull1@socialtext.com';
 my $test_email      = $test_username;
 my $test_password   = 'd3vnu11l';
 my $maximize        = 0;
+my $concurrency     = 1;
 
 my $version;
 my $verbose;
@@ -44,6 +45,7 @@ my $sauce_enabled;
 my $time_out        = '30000';
 my $fake_content_file;
 my $perf_summary;
+my @args = @ARGV;
 GetOptions(
     'plan-server=s'     => \$plan_server,
     'plan-workspace=s'  => \$plan_workspace,
@@ -56,12 +58,24 @@ GetOptions(
     'test-password=s'   => \$test_password,
     'f|fake-content-file=s' => \$fake_content_file,
     'timeout=i'         => \$time_out,
+    'concurrency=i'     => \$concurrency,
     'maximize!'         => \$maximize,
     'verbose'           => \$verbose,
     'version'           => \$version,
     'perf-summary'      => \$perf_summary,
     'sauce-enabled'     => \$sauce_enabled,
 ) or usage();
+
+if ($concurrency > 1) {
+    for my $i (1..$concurrency) {
+        my $args = "$^X $0 @args";
+        $args =~ s/--concurrency[=\s]+\d+//;
+        print("$args > output.$i 2>&1 &\n");
+        system("$args > output.$i 2>&1 &");
+        sleep 2;
+    }
+    exit;
+}
 
 if ($ENV{sauce_enabled} || $sauce_enabled) {
     $ENV{selenium_host} = 'saucelabs.com';
@@ -70,7 +84,7 @@ if ($ENV{sauce_enabled} || $sauce_enabled) {
         username     => ($ENV{sauce_username} || die "Please set the 'sauce_username' environment variable first.\n"),
         'access-key' => ($ENV{sauce_access_key} || die "Please set the 'sauce_access_key' environment variable first.\n"),
         os           => (($ENV{sauce_os} || '' =~ /linux/) ? 'Linux' : "Windows 2003"),
-        browser      => (($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/ ? $1 : 'firefox'),
+        browser      => ((($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/) ? $1 : 'firefox'),
         'job-name'   => "$test_server - ".($fake_content_file || $plan_page),
         ($ENV{sauce_browser_version} ? (
             'browser-version' => $ENV{sauce_browser_version},
@@ -151,7 +165,7 @@ my $wikitest_files_dir = {
     osx => '/private/wikitest_files/',
 }->{$ENV{selenium_server_platform} || 'linux'};
 
-my $test_start_time = _epoch_to_timpstamp(time);
+my $test_start_time = _epoch_to_timestamp(time);
 
 diag "Testing $test_server\n";
 (my $atmail = $test_email) =~ s#@#\\@#;
@@ -181,7 +195,7 @@ my $test_plan = Socialtext::WikiObject::TestPlan->new(
 $test_plan->run_tests;
 
 if ($perf_summary) {
-    my $test_end_time = _epoch_to_timpstamp(time);
+    my $test_end_time = _epoch_to_timestamp(time);
     my $perf_script = '/usr/sbin/st-appliance-summarize-perf';
     require Socialtext::System;
     if (-x $perf_script) {
@@ -269,7 +283,7 @@ EOT
     exit -1;
 }
 
-sub _epoch_to_timpstamp {
+sub _epoch_to_timestamp {
     my $time = shift;
     my ($sec,$min,$hour,$mday,$mon,$year) = localtime($time);
     return sprintf '%d-%02d-%dT%d:%02d:%02d', $year + 1900, $mon + 1, $mday,
