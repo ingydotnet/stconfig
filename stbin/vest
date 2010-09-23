@@ -2,7 +2,8 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use lib "$ENV{ST_CURRENT}/nlw/lib";
+use FindBin;
+use lib "$FindBin::Bin/../../socialtext/nlw/lib";
 use Socialtext::System qw/shell_run/;
 
 my $user_factories = $ENV{ST_USER_FACTORIES} || 'LDAP:ST-ldap;Default';
