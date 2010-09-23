@@ -77,6 +77,9 @@ sudo apt-get install --yes slapd
 sudo chown -R www-data:www-data /etc/socialtext/
 sudo chmod 666 /etc/socialtext/ldap.yaml
 
+# turn off captchas which can't be tested automatically
+sudo sed -i 's/captcha_enabled: 1/captcha_enabled: 0/' /etc/socialtext/appliance.conf
+
 # link appliance wikitest files into the path
 sudo ln -sf $WIKITESTS/st-bootstrap-openldap /usr/bin/
 sudo ln -sf $WIKITESTS/st-appliance-socialcalc /usr/bin/
