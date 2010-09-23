@@ -1,24 +1,21 @@
 set formatoptions-=t
 
-function! RunLastT()
+function! RunLastTest()
     if (expand('%:e') == 't')
-        let $lasttfile = expand('%')
+        let $lasttestfile = expand('%')
+        let $lasttestiswiki = 0
+    elseif (expand('%:e') == 'wiki')
+        let $lasttestfile = expand('%')
+        let $lasttestiswiki = 1
     endif
-    if (!strlen($lasttfile))
+    if (!strlen($lasttestfile))
        execute '!./' . expand('%')
     else
-        !TEST_LESS_VERBOSE=1 prv -v $lasttfile
-    endif
-endf
-
-function! RunLastWikitest()
-    if (expand('%:e') == 'wiki')
-        let $lastwikitfile = expand('%')
-    endif
-    if (!strlen($lastwikitfile))
-       execute '!./' . expand('%')
-    else
-        !restart-apache-if-needed; run-wiki-tests --fake-content-file $lastwikitfile
+        if ($lasttestiswiki)
+            !restart-apache-if-needed; TEST_LESS_VERBOSE=1 st-prove -v $lasttestfile
+        else
+            !TEST_LESS_VERBOSE=1 st-prove -v $lasttestfile
+        endif
     endif
 endf
 

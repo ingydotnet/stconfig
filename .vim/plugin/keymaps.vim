@@ -31,13 +31,12 @@ map \\# :s/^# // <CR> :noh <CR>
 map \/ :s,^,// , <CR> :noh <CR>
 map \\/ :s,^// ,, <CR> :noh <CR>
 
-" map \1 :up<CR> " ingy doesn't like this (yet)
 map \1 :w<CR>
 map \2 :up<CR>:!perlcheck -Ilib %<CR>
-map \3 :up<CR>:call RunLastT()<CR>
-map \4 :up<CR>:!prove -ls t<CR>
-map \5 :up<CR>:call RunLastWikitest()<CR>
+map \3 :up<CR>:call RunLastTest()<CR>
+map \5 :up<CR>:call RunLastTest()<CR>
 map \6 :up<CR>:!make all install<CR>
+map \7 :up<CR>:!make<CR>:call RunLastTest()<CR>
 
 map \d :.!echo -n 'date:    '; date<CR>
 map \h :up<CR>:call TryPerlCompile()<CR>
