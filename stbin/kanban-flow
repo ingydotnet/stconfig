@@ -21,6 +21,8 @@ use constant End   => 1;
 use constant Tags  => 2;
 use constant future => 0x7fffffff;
 
+my $fix_tables = "$ENV{HOME}/stbin/fix-tables";
+
 our @getopt_args;
 
 $| = 1;
@@ -43,14 +45,13 @@ GetOptions(\%opts,
     'at=s', 'start=s'
 ) or usage();
 
-my $rel_tag = $opts{release} || shift || 'ftw' or usage();
+my $rel_tag = shift || 'ftw' or usage();
 
 sub usage {
     die <<EOT;
 USAGE: $0 (options) releasetag
 Options:
     --no-cache      Don't use a disk cache for page history. (default: on)
-    --release=X     Use this release tag.
     --report=X      Generate the specified report (can have many)
     --json=X        Output the specified JSON blob.
     --no-sot        Don't use 8AM PST/PDT as "now" (the default).
@@ -495,7 +496,7 @@ sub fix_tables (\$) {
     my $input_ref = shift;
     die "not a ref!" unless ref($input_ref);
     my $pretty = '';
-    run(['fix-tables'], $input_ref, \$pretty, undef);
+    run([$fix_tables], $input_ref, \$pretty, undef);
     return $pretty;
 }
 
