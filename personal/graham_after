@@ -27,6 +27,9 @@ export PATH="/home/graham/perl5/bin:$PATH"
 # add ~/bin to path
 export PATH=/home/graham/bin:$PATH
 
+# Newer version of Git
+export PATH=/opt/git-1.7.0/libexec/git-core:$PATH
+
 # colourized prompt
 COLOR_BRANCH='\[\033[1;32m\]'
 COLOR_WORKDIR='\[\033[1;32m\]'
