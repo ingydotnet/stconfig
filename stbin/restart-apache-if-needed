@@ -19,7 +19,7 @@ restartit() {
         touch $touchfile
         jsmake all
         nlwctl -1 hup
-        nlwctl -p -u restart
+        nlwctl -p -u -s restart
     fi
 }
 
