@@ -8,12 +8,13 @@ MOD_GLYPH="*"
 STATE_GLYPH="!"
 PROMPT_COMMAND=_git_prompt_color
 
-# enable local perl5 dir. Thanks, http://search.cpan.org/~apeiron/local-lib/
 if [ `uname` = 'Darwin' ]; then
     unset MODULEBUILDRC
     unset PERL_MM_OPT
-    export PATH="/opt/perl/bin:$PATH"
+    unset PERL5LIB
+    . /opt/perlbrew/etc/bashrc
 else
+    # enable local perl5 dir. Thanks, http://search.cpan.org/~apeiron/local-lib/
     export MODULEBUILDRC="${HOME}/perl5/.modulebuildrc"
     export PERL_MM_OPT="INSTALL_BASE=${HOME}/perl5"
     export PERL5LIB="${HOME}/perl5/lib/perl5:${HOME}/perl5/lib/perl5/x86_64-linux-gnu-thread-multi"
@@ -23,16 +24,15 @@ fi
 alias gun='git reset HEAD'
 alias glm='git ls-files --exclude-standard -m'
 alias glmall='st-git-all -ls-files --exclude-standard -m'
-
 alias grep='grep --devices=skip --binary-files=without-match'
-
-# for deb-helper tools
-EMAIL="Jeremy Stashewsky <jeremy.stashewsky@socialtext.com>"
-
-export NYTPROF="file=/home/stash/nytprof/nytp.out"
-
 alias myps="ps -fH -u $USER"
 alias gcoall="st-git-all checkout"
+alias pmp="perl Makefile.PL"
+alias pmpd="perl Makefile.PL -DEBUG"
 
+export NYTPROF="file=/home/stash/nytprof/nytp.out"
 export PATH="/opt/git-1.7.0/libexec/git-core:$PATH"
 export NYTPROF="file=${HOME}/nytprof/nytp.out"
+
+# for deb-helper tools and git
+EMAIL="Jeremy Stashewsky <jeremy.stashewsky@socialtext.com>"
