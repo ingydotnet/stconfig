@@ -13,6 +13,7 @@ GetOptions(
 make_symlinks();
 make_rtrc();
 link_personal_config();
+link_personal_vimrc();
 exit;
 
 sub _stconfig_base {
@@ -107,4 +108,26 @@ sub link_personal_config {
     unlink $personal_symlink; # remove stale symlinks
     symlink($personal_rc, $personal_symlink) or 
         die "link $personal_rc -> $personal_symlink: $!";
+}
+
+sub link_personal_vimrc {
+    my ($username) = getpwuid($>);
+    my $base = _stconfig_base();
+
+    my $personal_vimrc = "$base/personal/${username}/vimrc";
+    unless (-e $personal_vimrc) {
+        warn "    skipping $personal_vimrc; doesn't exist\n";
+        return;
+    }
+
+    my $personal_symlink = "$ENV{HOME}/.vimrc-after";
+    if (-f $personal_symlink) {
+        warn "    skipping $personal_symlink; file exists\n";
+        return;
+    }
+
+    print "Linking $personal_symlink\n";
+    unlink $personal_symlink; # remove stale symlinks
+    symlink($personal_vimrc, $personal_symlink) or 
+        die "link $personal_vimrc -> $personal_symlink: $!";
 }
