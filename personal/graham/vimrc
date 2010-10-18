@@ -1,0 +1,2 @@
+" I like ":" being a word separator
+au BufNewFile,BufRead * set iskeyword-=:
