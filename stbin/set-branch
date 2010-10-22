@@ -102,6 +102,13 @@ foreach my $repo (@repos) {
 
 git_all('@-checkout .gitignore nlw/.gitignore >/dev/null || true');
 
+# Try to stop the daemons with the old codeline because we may be
+# reverting to an older version that doesn't know anything about a newer
+# daemon and can't stop it
+eval {
+    shell_run(qq{nlwctl stop});
+};
+
 if ($refresh_mode) {
     shell_run('st-git-all '. ($quiet ? '@' : '') . 'pull --rebase');
 }
