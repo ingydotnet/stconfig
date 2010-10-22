@@ -69,10 +69,13 @@ if ($dest_repo and $dest_repo =~ m/^release-*/ and !$ENV{ST_APT}) {
     print "Using $apt_server ...\n";
 }
 
+# Let's not allow people to host our sensitive DB without enabling SSL_ONLY
+$ssl = 1 if $staging_db;
+
 $apt_server =~ s#^https?://##;
 
 if ($test_data_only)  { install_test_data();  exit 0 }
-if ($staging_db_only) { install_staging_db(); exit 0 }
+if ($staging_db_only) { install_staging_db(); install_ssl(); exit 0 }
 if ($staging_reports_db_only) { install_staging_reports_db(); exit 0 }
 if ($ssl_only) { install_ssl(); exit 0 }
 if (@only_commands) { exec_on_ve(@only_commands); exit 0 }
