@@ -63,7 +63,7 @@ sudo st-admin set-workspace-config --w wikitests account_name $ACC || true
 
 echo "Importing latest help wiki"
 sudo st-admin delete-workspace --w help-en --no-export
-sudo st-admin import-workspace --t /user/share/nlw/l10n/help/help-en.tar.gz
+sudo st-admin import-workspace --t /usr/share/nlw/l10n/help/help-en.tar.gz
 
 echo "SETTING user accounts to $ACC, which is supposed to be the default account"
 sudo st-admin set-user-account --e wikitester@ken.socialtext.net --account $ACC
