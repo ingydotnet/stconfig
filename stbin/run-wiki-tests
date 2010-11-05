@@ -86,6 +86,7 @@ if ($ENV{sauce_enabled} || $sauce_enabled) {
         os           => (($ENV{sauce_os} || '' =~ /linux/) ? 'Linux' : "Windows 2003"),
         browser      => ((($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/) ? $1 : 'firefox'),
         'job-name'   => "$test_server - ".($fake_content_file || $plan_page),
+        'idle-timeout' => 3600,
         ($ENV{sauce_browser_version} ? (
             'browser-version' => $ENV{sauce_browser_version},
         ) : ()),
