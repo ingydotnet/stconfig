@@ -169,6 +169,22 @@ my $wikitest_files_dir = {
 
 my $test_start_time = _epoch_to_timestamp(time);
 
+use Socialtext::WikiFixture;
+{
+    package Socialtext::WikiFixture;
+    no warnings 'redefine';
+    sub include {
+        my $self      = shift;
+        my $page_name = shift;
+
+        print "# Including wikitest commands from $page_name\n";
+
+        if ($self->{testplan}->is_page_runnable($page_name)) {
+            my $tp = $self->{testplan}->new_testplan($page_name);
+            unshift @{ $self->{table} }, @{ $tp->{table} };
+        }
+    }
+}
 {
     package Socialtext::WikiObject::TestPlan::SkipAndRun;
     use Test::More;
@@ -188,11 +204,12 @@ my $test_start_time = _epoch_to_timestamp(time);
         bless $plan, (ref($self) || $self);
     }
 
-    sub run_tests {
+    sub is_page_runnable {
         my $self = shift;
+        my $page = shift;
         my (%run, %skip);
 
-        for ( map { lc $_ } $self->{rester}->get_pagetags($self->{page}) ) {
+        for ( map { lc $_ } $self->{rester}->get_pagetags($page) ) {
             if (/^run\.(.+)/) {
                 $run{$_} = 1 for split /\W+/, $Acronyms{$1} || $1;
                 next;
@@ -205,25 +222,34 @@ my $test_start_time = _epoch_to_timestamp(time);
 
         if ($run{all}) {
             # Trumps everything else
+            return 1;
         }
         elsif ($skip{all}) {
             SKIP: { skip("$plan_page tagged (skip.all)", 1) };
-            return;
+            return 0;
         }
         elsif (%run) {
             unless (any { $browser =~ $_ } keys %run) {
                 SKIP: { skip("$plan_page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); skipping $browser", 1) };
-                return;
+                return 0;
             }
         }
         elsif (%skip) {
             if (any { $browser =~ $_ } keys %skip) {
                 SKIP: { skip("$plan_page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); skipping $browser", 1) };
-                return;
+                return 0;
             }
         }
 
-        return $self->SUPER::run_tests(@_);
+        return 1;
+    }
+
+    sub run_tests {
+        my $self = shift;
+
+        if ($self->is_page_runnable($self->{page})) {
+            return $self->SUPER::run_tests(@_);
+        }
     }
 }
 
@@ -262,7 +288,7 @@ if ($perf_summary) {
     if (-x $perf_script) {
         warn "Ass-u-ming appliance, as $perf_script is found.\n";
         Socialtext::System::shell_run(
-            $perf_script, '--log-file', '/var/log/nlw.log', 
+            $perf_script, '--log-file', '/var/log/nlw.log',
             '--start-time', $test_start_time,
             '--end-time', $test_end_time,
         );
@@ -281,7 +307,7 @@ if ($perf_summary) {
 
         Socialtext::System::shell_run(
             $^X, '-I', "$console_dir/lib",
-            $perf_script, '--log-file', $tmp_file, 
+            $perf_script, '--log-file', $tmp_file,
             '--start-time', $test_start_time,
             '--end-time', $test_end_time,
         );
