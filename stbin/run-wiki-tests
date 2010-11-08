@@ -220,24 +220,37 @@ use Socialtext::WikiFixture;
             }
         }
 
+        if ($self->{rester}->get_page($page) =~ /\*\s+HighPermissions\b/) {
+            $run{firefox} = 1;
+        }
+
         if ($run{all}) {
             # Trumps everything else
+            diag("$page tagged (run.all); running $browser");
             return 1;
         }
         elsif ($skip{all}) {
-            SKIP: { skip("$plan_page tagged (skip.all)", 1) };
+            SKIP: { skip("$page tagged (skip.all); skipping $browser", 1) };
             return 0;
         }
         elsif (%run) {
-            unless (any { $browser =~ $_ } keys %run) {
-                SKIP: { skip("$plan_page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); skipping $browser", 1) };
+            if (any { $browser =~ $_ } keys %run) {
+                diag("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); running $browser");
+                return 1;
+            }
+            else {
+                SKIP: { skip("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); skipping $browser", 1) };
                 return 0;
             }
         }
         elsif (%skip) {
             if (any { $browser =~ $_ } keys %skip) {
-                SKIP: { skip("$plan_page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); skipping $browser", 1) };
+                SKIP: { skip("$page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); skipping $browser", 1) };
                 return 0;
+            }
+            else {
+                diag("$page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); running $browser");
+                return 1;
             }
         }
 
