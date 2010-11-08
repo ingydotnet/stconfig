@@ -77,6 +77,7 @@ if ($concurrency > 1) {
     exit;
 }
 
+my $browser = ((($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/) ? $1 : 'firefox');
 if ($ENV{sauce_enabled} || $sauce_enabled) {
     $ENV{selenium_host} = 'saucelabs.com';
     $ENV{selenium_port} = '4444';
@@ -84,7 +85,7 @@ if ($ENV{sauce_enabled} || $sauce_enabled) {
         username     => ($ENV{sauce_username} || die "Please set the 'sauce_username' environment variable first.\n"),
         'access-key' => ($ENV{sauce_access_key} || die "Please set the 'sauce_access_key' environment variable first.\n"),
         os           => (($ENV{sauce_os} || '' =~ /linux/) ? 'Linux' : "Windows 2003"),
-        browser      => ((($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/) ? $1 : 'firefox'),
+        browser      => $browser,
         'job-name'   => "$test_server - ".($fake_content_file || $plan_page),
         'idle-timeout' => 3600,
         ($ENV{sauce_browser_version} ? (
@@ -168,9 +169,61 @@ my $wikitest_files_dir = {
 
 my $test_start_time = _epoch_to_timestamp(time);
 
+{
+    package Socialtext::WikiObject::TestPlan::SkipAndRun;
+    use Test::More;
+    use List::MoreUtils 'any';
+    our @ISA = 'Socialtext::WikiObject::TestPlan';
+    our %Acronyms = qw(
+        ie      iexplore
+        ff      firefox
+        chrome  googlechrome
+        webkit  googlechrome|safari
+        saf     safari
+    );
+    sub run_tests {
+        my $self = shift;
+        my (%run, %skip);
+
+        for ( map { lc $_ } $self->{rester}->get_pagetags($self->{page}) ) {
+            if (/^run\.(.+)/) {
+                $run{$_} = 1 for split /\W+/, $Acronyms{$1} || $1;
+                next;
+            }
+            if (/^skip\.(.+)/) {
+                $skip{$_} = 1 for split /,/, $Acronyms{$1} || $1;
+                next;
+            }
+        }
+
+        if ($run{all}) {
+            # Trumps everything else
+        }
+        elsif ($skip{all}) {
+            SKIP: { skip("$plan_page tagged (skip.all)", 1) };
+            return;
+        }
+        elsif (%run) {
+            unless (any { $browser =~ $_ } keys %run) {
+                SKIP: { skip("$plan_page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); skipping $browser", 1) };
+                return;
+            }
+        }
+        elsif (%skip) {
+            if (any { $browser =~ $_ } keys %skip) {
+                SKIP: { skip("$plan_page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); skipping $browser", 1) };
+                return;
+            }
+        }
+
+        return $self->SUPER::run_tests(@_);
+    }
+}
+
+
 diag "Testing $test_server\n";
 (my $atmail = $test_email) =~ s#@#\\@#;
-my $test_plan = Socialtext::WikiObject::TestPlan->new(
+my $test_plan = Socialtext::WikiObject::TestPlan::SkipAndRun->new(
     rester => $rester,
     page => $plan_page,
     default_fixture => 'Socialtext',
