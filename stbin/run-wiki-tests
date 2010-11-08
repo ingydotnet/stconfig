@@ -181,6 +181,13 @@ my $test_start_time = _epoch_to_timestamp(time);
         webkit  googlechrome|safari
         saf     safari
     );
+
+    sub new_testplan {
+        my $self = shift;
+        my $plan = $self->SUPER::new_testplan(@_);
+        bless $plan, (ref($self) || $self);
+    }
+
     sub run_tests {
         my $self = shift;
         my (%run, %skip);
