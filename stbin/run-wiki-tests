@@ -93,6 +93,8 @@ if ($ENV{sauce_enabled} || $sauce_enabled) {
         ) : ()),
     });
 }
+# "chrome" actually matches "firefox" when testing skip and run.
+$browser = 'firefox' if $browser eq 'chrome';
 
 # Add current branch's lib to our include path
 my $st_admin = qx(which st-admin);
@@ -220,7 +222,9 @@ use Socialtext::WikiFixture;
             }
         }
 
+        my $implicit_msg = '';
         if ($self->{rester}->get_page($page) =~ /\*\s+HighPermissions\b/) {
+            $implicit_msg = ' implicitly with HighPermissions' unless $run{firefox};
             $run{firefox} = 1;
         }
 
@@ -235,11 +239,11 @@ use Socialtext::WikiFixture;
         }
         elsif (%run) {
             if (any { $browser =~ $_ } keys %run) {
-                diag("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); running $browser");
+                diag("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]})$implicit_msg; running $browser");
                 return 1;
             }
             else {
-                SKIP: { skip("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]}); skipping $browser", 1) };
+                SKIP: { skip("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]})$implicit_msg; skipping $browser", 1) };
                 return 0;
             }
         }
