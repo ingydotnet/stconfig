@@ -77,8 +77,15 @@ if ($concurrency > 1) {
     exit;
 }
 
+unless ($sauce_enabled ||= $ENV{sauce_enabled}) {
+    delete $ENV{$_} for grep { /^sauce_/ } keys %ENV;
+}
+
+my $os = ((($ENV{sauce_os} || $ENV{selenium_server_platform} || '') =~ /(\w+)/) ? $1 : 'linux');
 my $browser = ((($ENV{sauce_browser} || $ENV{selenium_browser} || '') =~ /(\w+)/) ? $1 : 'firefox');
-if ($ENV{sauce_enabled} || $sauce_enabled) {
+my $env = ($test_server =~ /:2\d\d\d\d/) ? 'devenv' : 'appliance';
+
+if ($sauce_enabled) {
     $ENV{selenium_host} = 'saucelabs.com';
     $ENV{selenium_port} = '4444';
     $ENV{selenium_browser} = encode_json({
@@ -93,6 +100,7 @@ if ($ENV{sauce_enabled} || $sauce_enabled) {
         ) : ()),
     });
 }
+
 # "chrome" actually matches "firefox" when testing skip and run.
 $browser = 'firefox' if $browser eq 'chrome';
 
@@ -198,6 +206,19 @@ use Socialtext::WikiFixture;
         chrome  googlechrome
         webkit  googlechrome|safari
         saf     safari
+
+        app     appliance
+        dev     devenv
+
+        lin     linux
+        mac     osx
+        win     windows
+    );
+
+    our @Filters = (
+        { type => 'os', value => $os, match => qr/^(?:linux|osx|windows)$/ },
+        { type => 'env', value => $env, match => qr/^(?:appliance|devenv)$/ },
+        { type => 'browser', value => $browser, match => qr/^(?!(?:linux|osx|windows|appliance|devenv)$)/ },
     );
 
     sub new_testplan {
@@ -222,41 +243,57 @@ use Socialtext::WikiFixture;
             }
         }
 
-        my $implicit_msg = '';
-        if ($self->{rester}->get_page($page) =~ /\*\s+HighPermissions\b/) {
-            $implicit_msg = ' implicitly with HighPermissions' unless $run{firefox};
-            $run{firefox} = 1;
-        }
-
         if ($run{all}) {
             # Trumps everything else
-            diag("$page tagged (run.all); running $browser");
+            diag("$page tagged (run.all); running unconditionally");
             return 1;
         }
         elsif ($skip{all}) {
-            SKIP: { skip("$page tagged (skip.all); skipping $browser", 1) };
+            SKIP: { skip("$page tagged (skip.all); skipping unconditionally", 1) };
             return 0;
         }
-        elsif (%run) {
-            if (any { $browser =~ $_ } keys %run) {
-                diag("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]})$implicit_msg; running $browser");
-                return 1;
+
+        my %implicit;
+        if ($self->{rester}->get_page($page) =~ /\*\s+HighPermissions\b/) {
+            %implicit = ( browser => ' implicitly with HighPermissions' ) unless $run{firefox};
+            $run{firefox} = 1;
+        }
+
+        my @diag;
+        for (@Filters) {
+            my ($type, $value, $match) = @{$_}{qw( type value match )};
+
+            my @run_keys = sort grep { $_ =~ /$match/ } keys %run;
+            my @skip_keys = sort grep { $_ =~ /$match/ } keys %skip;
+
+            my $implicit_msg = '';
+            if ($implicit{$type}) {
+                $implicit_msg = $implicit{$type};
             }
-            else {
-                SKIP: { skip("$page tagged (@{[ map {qq[run.$_]} sort keys %run ]})$implicit_msg; skipping $browser", 1) };
-                return 0;
+
+            if (@run_keys) {
+                if (any { $value =~ $_ } @run_keys) {
+                    push @diag, "$page tagged (@{[ map {qq[run.$_]} @run_keys ]})$implicit_msg; running $value";
+                    next;
+                }
+                else {
+                    SKIP: { skip("$page tagged (@{[ map {qq[run.$_]} @run_keys ]})$implicit_msg; skipping $value", 1) };
+                    return 0;
+                }
+            }
+            elsif (@skip_keys) {
+                if (any { $value =~ $_ } @skip_keys) {
+                    SKIP: { skip("$page tagged (@{[ map {qq[skip.$_]} @skip_keys ]}); skipping $value", 1) };
+                    return 0;
+                }
+                else {
+                    push @diag, "$page tagged (@{[ map {qq[skip.$_]} @skip_keys ]}); running $value";
+                    next;
+                }
             }
         }
-        elsif (%skip) {
-            if (any { $browser =~ $_ } keys %skip) {
-                SKIP: { skip("$page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); skipping $browser", 1) };
-                return 0;
-            }
-            else {
-                diag("$page tagged (@{[ map {qq[skip.$_]} sort keys %skip ]}); running $browser");
-                return 1;
-            }
-        }
+
+        diag($_) for @diag;
 
         return 1;
     }
