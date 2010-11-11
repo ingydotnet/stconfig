@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Socialtext::Resting::Getopt qw/get_rester/;
 use Term::ANSIColor;
-use lib "$ENV{ST_SRC_BASE}/current/nlw/lib";
+use lib "$ENV{ST_SRC_BASE}/socialtext/nlw/lib";
 use Socialtext::System qw/shell_run/;
 use Getopt::Long;
 use File::Temp qw(tempdir);
