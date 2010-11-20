@@ -48,6 +48,7 @@ for my $name (keys %default_env) {
 # better outside the above loop.
 if ($ENV{PATH} !~ /stdefaultenv-done/) {
     printf "export PATH=%s; ", join ':', qw(
+      ~/.../bin
       ~/stbin
       ~/bin
       ~/local/bin
